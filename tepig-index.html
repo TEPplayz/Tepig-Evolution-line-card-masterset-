@@ -583,6 +583,45 @@
   <div class="modal-inner">
     <button class="modal-close" onclick="closeImgModal()">✕</button>
     <img id="img-modal-img" src="" alt="Card"/>
+    <button id="img-modal-edit-btn" onclick="openEditFromViewer()" style="margin-top:12px;width:100%;padding:10px;background:#e74c3c;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;">✏️ Edit Card Details</button>
+  </div>
+</div>
+
+<!-- Edit Card Modal -->
+<div class="modal-overlay" id="edit-modal" onclick="closeEditModal(event)">
+  <div class="modal-inner">
+    <button class="modal-close" onclick="closeEditModal()">✕</button>
+    <h2>✏️ Edit Card</h2>
+    <input type="hidden" id="edit-card-id"/>
+    <div class="form-row">
+      <label>Pokémon Name</label>
+      <input id="edit-name" type="text"/>
+    </div>
+    <div class="form-row">
+      <label>Set Name</label>
+      <input id="edit-set" type="text"/>
+    </div>
+    <div class="form-row">
+      <label>Card Number</label>
+      <input id="edit-number" type="text"/>
+    </div>
+    <div class="form-row">
+      <label>Variant / Notes</label>
+      <input id="edit-variant" type="text"/>
+    </div>
+    <div class="form-row">
+      <label>Image URL</label>
+      <input id="edit-imgurl" type="url" placeholder="https://…" autocorrect="off" autocapitalize="off"/>
+    </div>
+    <div class="form-row">
+      <label>PriceCharting URL</label>
+      <input id="edit-pcurl" type="url" placeholder="https://www.pricecharting.com/…" autocorrect="off" autocapitalize="off"/>
+    </div>
+    <div class="form-actions" style="margin-top:16px">
+      <button class="btn-save" onclick="saveEditCard()">💾 Save Changes</button>
+      <button class="btn-cancel" onclick="resetEditCard()" style="background:#555">↩ Reset to Default</button>
+    </div>
+    <div id="edit-status" style="margin-top:10px;font-size:0.85rem;color:var(--text-muted)"></div>
   </div>
 </div>
 
@@ -652,21 +691,13 @@
   <div class="modal-inner">
     <button class="modal-close" onclick="closeSettings()">✕</button>
     <h2>⚙️ Settings</h2>
-    <p style="color:var(--text-muted);font-size:0.85rem;margin:10px 0 16px">Enter your free PriceCharting API token to fetch live ungraded prices directly from PriceCharting.</p>
-    <div class="form-row">
-      <label>PriceCharting API Token</label>
-      <input id="s-pc-token" type="text" placeholder="Paste your token here…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin:10px 0 16px">Prices are fetched automatically from the <b>Pokémon TCG API</b> (free, no account needed). Prices are in GBP and update every 24h.</p>
+    <div id="s-status" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px"></div>
+    <div class="form-actions">
+      <button class="btn-save" onclick="forceFetchPrices()">🔄 Fetch Prices Now</button>
+      <button class="btn-cancel" onclick="clearAllData()">🗑 Reset All Data</button>
     </div>
-    <p style="font-size:0.8rem;color:var(--text-muted);margin-top:6px">
-      Get your <b>free</b> token at:
-      <a href="https://www.pricecharting.com/api" target="_blank" rel="noopener" style="color:#e74c3c">pricecharting.com/api</a>
-      — sign in and your token is shown on that page.
-    </p>
-    <div class="form-actions" style="margin-top:16px">
-      <button class="btn-save" onclick="saveSettings()">Save &amp; Fetch Prices</button>
-      <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
-    </div>
-    <div id="s-status" style="margin-top:12px;font-size:0.85rem;color:var(--text-muted)"></div>
+    <p style="font-size:0.75rem;color:var(--text-muted);margin-top:14px">Reset clears collected status, prices, and custom cards.</p>
   </div>
 </div>
 
@@ -850,6 +881,17 @@ function loadState() {
   } catch(e) {}
 
   CARDS = [...BASE_CARDS, ...custom];
+
+  // Apply any saved card overrides (from edit modal)
+  try {
+    const ov = localStorage.getItem('tepig-overrides');
+    if (ov) {
+      const overrides = JSON.parse(ov);
+      for (const card of CARDS) {
+        if (overrides[card.id]) Object.assign(card, overrides[card.id]);
+      }
+    }
+  } catch(e) {}
 }
 
 function saveCollected() {
@@ -868,9 +910,16 @@ function savePriceHistory() {
 //  SETTINGS
 // ════════════════════════════════════════
 function openSettings() {
-  const token = localStorage.getItem('tepig-pc-token') || '';
-  document.getElementById('s-pc-token').value = token;
-  document.getElementById('s-status').textContent = token ? '✅ Token saved' : '';
+  const el = document.getElementById('s-status');
+  const lastRaw = localStorage.getItem('tepig-api-v5');
+  if (lastRaw) {
+    try {
+      const { ts } = JSON.parse(lastRaw);
+      el.textContent = '✅ Prices last fetched: ' + new Date(ts).toLocaleString();
+    } catch(e) { el.textContent = ''; }
+  } else {
+    el.textContent = 'No prices fetched yet.';
+  }
   document.getElementById('settings-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -879,67 +928,57 @@ function closeSettings(e) {
   document.getElementById('settings-modal').classList.remove('open');
   document.body.style.overflow = '';
 }
-async function saveSettings() {
-  const token = document.getElementById('s-pc-token').value.trim();
-  if (!token) { document.getElementById('s-status').textContent = '⚠️ Please enter a token'; return; }
-  localStorage.setItem('tepig-pc-token', token);
-  document.getElementById('s-status').textContent = '⏳ Fetching prices…';
-  const count = await fetchPcPrices(token, true);
-  renderAll();
-  document.getElementById('s-status').textContent = `✅ Fetched prices for ${count} cards!`;
-  updateLastUpdated();
+async function forceFetchPrices() {
+  const el = document.getElementById('s-status');
+  el.textContent = '⏳ Fetching prices…';
+  try {
+    const count = await fetchTcgPrices(true);
+    el.textContent = `✅ Updated prices for ${count} cards!`;
+  } catch(e) {
+    el.textContent = '❌ Fetch failed — check your connection';
+  }
+}
+function clearAllData() {
+  if (!confirm('Reset all data? This will clear collected status, prices, and custom cards.')) return;
+  localStorage.clear();
+  location.reload();
 }
 
 // ════════════════════════════════════════
-//  PRICECHARTING PRICE FETCH
+//  TCG API PRICE FETCH (free, no token)
 // ════════════════════════════════════════
-async function fetchPcPrices(token, force = false) {
-  const CACHE_KEY = 'tepig-pc-prices-v5';
-  const CACHE_TIME = 24 * 60 * 60 * 1000;
-
-  if (!force) {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (raw) {
-        const cached = JSON.parse(raw);
-        if (Date.now() - cached.ts < CACHE_TIME) return 0; // still fresh
-      }
-    } catch(e) {}
+function getBestPriceTier(prices, card) {
+  if (!prices) return null;
+  const v = (card.variant || '').toLowerCase();
+  const r = (card.rarity || '').toLowerCase();
+  if (v.includes('reverse')) {
+    return prices.reverseHolofoil || prices.holofoil || prices.normal;
   }
-
-  let count = 0;
-  const GBP_RATE = 0.79;
-
-  for (const card of CARDS) {
-    if (!card.pcUrl) continue;
-    // Extract slug from pcUrl: https://www.pricecharting.com/game/set-name/card-slug → card-slug
-    const slug = card.pcUrl.split('/').pop();
-    if (!slug) continue;
-
-    try {
-      const res = await fetch(
-        `https://www.pricecharting.com/api/product?id=${encodeURIComponent(slug)}&status=price&access_token=${encodeURIComponent(token)}`
-      );
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (data.status === 'error') continue;
-      // loose-price is in cents (USD)
-      const looseUsd = data['loose-price'];
-      if (looseUsd != null && looseUsd > 0) {
-        const gbp = (looseUsd / 100) * GBP_RATE;
-        storePricePoint(card.id, gbp);
-        count++;
-      }
-    } catch(e) { /* skip this card */ }
-
-    // Small delay to avoid hammering the API
-    await new Promise(r => setTimeout(r, 100));
+  if (v.includes('holo') || r.includes('holo')) {
+    return prices.holofoil || prices['1stEditionHolofoil'] || prices.normal;
   }
+  if (r.includes('rare')) {
+    return prices.holofoil || prices.normal;
+  }
+  return prices.normal || prices.reverseHolofoil || prices.holofoil
+    || prices['1stEditionNormal'] || prices['1stEditionHolofoil'];
+}
 
-  localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now() }));
-  savePrices();
-  savePriceHistory();
-  return count;
+async function fetchTcgPrices(force = false) {
+  await loadApiData(force);
+  try {
+    const raw = localStorage.getItem('tepig-api-v5');
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw);
+    if (!parsed.data) return 0;
+    const count = processApiData(parsed.data);
+    renderAll();
+    updateLastUpdated();
+    return count;
+  } catch(e) {
+    console.warn('fetchTcgPrices error:', e);
+    return 0;
+  }
 }
 
 // ════════════════════════════════════════
@@ -992,6 +1031,7 @@ function setNameSimilarity(a, b) {
 
 function processApiData(apiCards) {
   // Build a lookup map
+  let priceCount = 0;
   const byNameSet = {};
   for (const ac of apiCards) {
     const key = normStr(ac.name) + '|' + normStr(ac.set && ac.set.name);
@@ -1033,13 +1073,13 @@ function processApiData(apiCards) {
         card.number = bestMatch.number;
       }
 
-      // Update price
-      const price = bestMatch.tcgplayer && bestMatch.tcgplayer.prices;
-      if (price) {
-        const tier = price.holofoil || price.reverseHolofoil || price.normal || price['1stEditionHolofoil'] || price['1stEditionNormal'];
+      // Update price using best tier for this card's variant/rarity
+      const prices = bestMatch.tcgplayer && bestMatch.tcgplayer.prices;
+      if (prices) {
+        const tier = getBestPriceTier(prices, card);
         if (tier && tier.market != null) {
-          const gbpPrice = (tier.market * USD_TO_GBP);
-          storePricePoint(card.id, gbpPrice);
+          storePricePoint(card.id, tier.market * USD_TO_GBP);
+          priceCount++;
         }
       }
     }
@@ -1047,6 +1087,7 @@ function processApiData(apiCards) {
 
   savePrices();
   savePriceHistory();
+  return priceCount;
 }
 
 function storePricePoint(cardId, price) {
@@ -1262,6 +1303,7 @@ function toggleCollected(cardId) {
 function openImgModal(cardId) {
   const card = CARDS.find(c => c.id === cardId);
   if (!card || !card.imgUrl) return;
+  _currentViewerCardId = cardId;
   const img = document.getElementById('img-modal-img');
   // Use hires version if available from pokemontcg CDN (e.g. bw1/15.png → bw1/15_hires.png)
   img.src = card.imgUrl.replace(/\.png$/, '_hires.png');
@@ -1403,14 +1445,8 @@ async function refreshPrices() {
   btn.classList.add('loading');
   btn.innerHTML = '<span class="spinner"></span> Refreshing…';
   try {
-    const token = localStorage.getItem('tepig-pc-token');
-    if (token) {
-      const count = await fetchPcPrices(token, true);
-      renderAll();
-      showToast(count > 0 ? `✅ Updated ${count} prices!` : '⚠️ No prices returned — check your token in ⚙️');
-    } else {
-      showToast('⚙️ Add your PriceCharting token in Settings first!');
-    }
+    const count = await fetchTcgPrices(true);
+    showToast(count > 0 ? `✅ Updated ${count} prices!` : '⚠️ No prices found');
     updateLastUpdated();
   } catch(e) {
     showToast('❌ Refresh failed');
@@ -1437,17 +1473,94 @@ function showToast(msg) {
 }
 
 // ════════════════════════════════════════
+//  EDIT CARD
+// ════════════════════════════════════════
+let _currentViewerCardId = null;
+
+function openEditFromViewer() {
+  if (!_currentViewerCardId) return;
+  closeImgModal();
+  openEditModal(_currentViewerCardId);
+}
+
+function openEditModal(cardId) {
+  const card = CARDS.find(c => c.id === cardId);
+  if (!card) return;
+  document.getElementById('edit-card-id').value = cardId;
+  document.getElementById('edit-name').value = card.name || '';
+  document.getElementById('edit-set').value = card.set || '';
+  document.getElementById('edit-number').value = card.number || '';
+  document.getElementById('edit-variant').value = card.variant || '';
+  document.getElementById('edit-imgurl').value = card.imgUrl || '';
+  document.getElementById('edit-pcurl').value = card.pcUrl || '';
+  document.getElementById('edit-status').textContent = '';
+  document.getElementById('edit-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('edit-modal')) return;
+  document.getElementById('edit-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function saveEditCard() {
+  const cardId = document.getElementById('edit-card-id').value;
+  const card = CARDS.find(c => c.id === cardId);
+  if (!card) return;
+
+  // Apply edits to the live card object
+  card.name    = document.getElementById('edit-name').value.trim() || card.name;
+  card.set     = document.getElementById('edit-set').value.trim() || card.set;
+  card.number  = document.getElementById('edit-number').value.trim();
+  card.variant = document.getElementById('edit-variant').value.trim();
+  card.imgUrl  = document.getElementById('edit-imgurl').value.trim() || card.imgUrl;
+  card.pcUrl   = document.getElementById('edit-pcurl').value.trim() || card.pcUrl;
+
+  // Persist overrides to localStorage
+  const overrides = JSON.parse(localStorage.getItem('tepig-overrides') || '{}');
+  overrides[cardId] = {
+    name: card.name, set: card.set, number: card.number,
+    variant: card.variant, imgUrl: card.imgUrl, pcUrl: card.pcUrl
+  };
+  localStorage.setItem('tepig-overrides', JSON.stringify(overrides));
+
+  renderAll();
+  document.getElementById('edit-status').textContent = '✅ Saved!';
+  setTimeout(() => {
+    document.getElementById('edit-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }, 900);
+}
+
+function resetEditCard() {
+  const cardId = document.getElementById('edit-card-id').value;
+  const overrides = JSON.parse(localStorage.getItem('tepig-overrides') || '{}');
+  delete overrides[cardId];
+  localStorage.setItem('tepig-overrides', JSON.stringify(overrides));
+  document.getElementById('edit-status').textContent = '↩ Reset to default — reload to see changes';
+  // Also reload card data from BASE_CARDS
+  const base = BASE_CARDS.find(c => c.id === cardId);
+  const live = CARDS.find(c => c.id === cardId);
+  if (base && live) Object.assign(live, base);
+  renderAll();
+  setTimeout(() => {
+    document.getElementById('edit-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }, 1200);
+}
+
+// ════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════
 async function init() {
   loadState();
   renderAll();
-  // Fetch prices from PriceCharting if token exists
-  const token = localStorage.getItem('tepig-pc-token');
-  if (token) {
-    await fetchPcPrices(token, false);
-    renderAll();
-    updateLastUpdated();
+  // Always try to fetch TCG prices in the background (free, no token needed)
+  try {
+    await fetchTcgPrices(false);
+  } catch(e) {
+    console.warn('Background price fetch failed:', e);
   }
 }
 
