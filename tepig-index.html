@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Tepig TCG Tracker</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Tepig TCG" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#c0392b" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --fire: #c0392b; --fire-light: #e74c3c; --fire-dark: #922b21;
+      --bg: #1a1a2e; --card-bg: #16213e; --card-border: #0f3460;
+      --text: #eee; --text-muted: #aaa; --checked: #2ecc71; --checked-bg: #1a3a2a;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+    header { background: linear-gradient(135deg, var(--fire-dark), var(--fire-light)); padding: 16px 16px 14px; padding-top: calc(16px + env(safe-area-inset-top)); text-align: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 20px rgba(192,57,43,0.4); }
+    .header-top { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 4px; }
+    header h1 { font-size: 1.45rem; font-weight: 800; letter-spacing: 0.5px; }
+    .refresh-btn { background: rgba(0,0,0,0.22); border: none; border-radius: 8px; color: white; padding: 6px 10px; font-size: 0.72rem; cursor: pointer; display: flex; align-items: center; gap: 5px; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+    .refresh-btn:active { opacity: 0.7; transform: scale(0.95); }
+    .refresh-btn svg { transition: transform 0.6s; }
+    .refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .price-status { font-size: 0.62rem; opacity: 0.88; letter-spacing: 0.3px; margin-bottom: 8px; min-height: 14px; }
+    .stats-bar { display: flex; justify-content: space-around; gap: 8px; }
+    .stat { background: rgba(0,0,0,0.25); border-radius: 10px; padding: 7px 10px; flex: 1; text-align: center; }
+    .stat-value { font-size: 1.25rem; font-weight: 800; }
+    .stat-label { font-size: 0.62rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
+    .progress-wrap { background: rgba(0,0,0,0.3); border-radius: 20px; height: 7px; margin-top: 10px; overflow: hidden; }
+    .progress-bar { height: 100%; background: linear-gradient(90deg, #f39c12, #27ae60); border-radius: 20px; transition: width 0.4s ease; }
+    .section { margin: 16px 12px 0; }
+    .section-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: linear-gradient(135deg, var(--fire-dark), var(--fire)); border-radius: 14px 14px 0 0; font-weight: 700; font-size: 1rem; }
+    .section-header img { width: 36px; height: 36px; object-fit: contain; border-radius: 50%; background: rgba(255,255,255,0.15); }
+    .section-subtitle { margin-left: auto; font-size: 0.75rem; opacity: 0.85; font-weight: 500; }
+    .cards-list { background: var(--card-bg); border: 1px solid var(--card-border); border-top: none; border-radius: 0 0 14px 14px; overflow: hidden; }
+    .card-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .card-item:last-child { border-bottom: none; }
+    .card-item:active { background: rgba(255,255,255,0.05); }
+    .card-item.collected { background: var(--checked-bg); }
+    .card-thumb-wrap { position: relative; flex-shrink: 0; width: 54px; height: 76px; }
+    .card-thumb { width: 54px; height: 76px; object-fit: cover; border-radius: 6px; background: #0f3460; display: block; }
+    .thumb-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.35); border-radius: 6px; opacity: 0; pointer-events: none; font-size: 1.2rem; transition: opacity 0.15s; }
+    .card-thumb-wrap:active .thumb-overlay { opacity: 1; }
+    .card-info { flex: 1; min-width: 0; }
+    .card-name { font-size: 0.92rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+    .card-variant { display: inline-block; margin-top: 4px; font-size: 0.63rem; padding: 2px 7px; border-radius: 8px; font-weight: 600; background: rgba(255,255,255,0.12); }
+    .card-variant.reverse { background: rgba(100,150,255,0.25); color: #a0c4ff; }
+    .card-variant.holo { background: rgba(255,215,0,0.25); color: #ffd700; }
+    .card-variant.promo { background: rgba(255,100,150,0.25); color: #ff9ec4; }
+    .card-variant.illustration { background: rgba(180,100,255,0.25); color: #d4aaff; }
+    .card-variant.sir { background: linear-gradient(90deg,rgba(255,215,0,0.4),rgba(200,100,255,0.4)); color: #ffe066; }
+    .card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+    /* Price link - tapping goes to PriceCharting, doesn't toggle collected */
+    .price-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+    .card-price-link { text-decoration: none; display: flex; align-items: center; gap: 3px; }
+    .card-price { font-size: 0.85rem; font-weight: 700; color: #f1c40f; }
+    .card-price.price-up   { color: #2ecc71; }
+    .card-price.price-down { color: #e74c3c; }
+    .card-price.price-same { color: #ffffff; }
+    .price-arrow { font-size: 0.7rem; font-weight: 700; line-height: 1; }
+    .price-arrow.up   { color: #2ecc71; }
+    .price-arrow.down { color: #e74c3c; }
+    .price-tag { font-size: 0.5rem; color: var(--text-muted); letter-spacing: 0.3px; }
+    .checkbox { width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+    .card-item.collected .checkbox { background: var(--checked); border-color: var(--checked); }
+    .checkbox svg { opacity: 0; transition: opacity 0.2s; }
+    .card-item.collected .checkbox svg { opacity: 1; }
+    /* Fullscreen Image Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.93); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.2s ease; }
+    .modal-overlay.hidden { display: none; }
+    @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+    .modal-inner { position: relative; max-width: 340px; width: 100%; }
+    .modal-img { width: 100%; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); display: block; }
+    .modal-close { position: absolute; top: -14px; right: -14px; width: 34px; height: 34px; background: var(--fire); border-radius: 50%; border: none; color: white; font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 10; }
+    .modal-card-name { color: white; text-align: center; margin-top: 14px; font-weight: 700; font-size: 1.1rem; }
+    .modal-card-sub  { color: var(--text-muted); text-align: center; font-size: 0.8rem; margin-top: 3px; }
+    .modal-price-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; }
+    .modal-price { font-size: 1.1rem; font-weight: 800; color: #f1c40f; }
+    .modal-price.price-up   { color: #2ecc71; }
+    .modal-price.price-down { color: #e74c3c; }
+    .modal-price.price-same { color: #ffffff; }
+    .modal-pc-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; text-decoration: none; font-size: 0.82rem; font-weight: 600; }
+    /* Add Card Modal */
+    .add-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 500; display: flex; align-items: flex-end; animation: slideUp 0.3s ease; }
+    .add-modal.hidden { display: none; }
+    @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+    .add-modal-content { background: var(--card-bg); border-radius: 20px 20px 0 0; padding: 24px 20px; padding-bottom: calc(24px + env(safe-area-inset-bottom)); width: 100%; max-height: 90vh; overflow-y: auto; border-top: 3px solid var(--fire); }
+    .add-modal-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 16px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600; }
+    .form-group input, .form-group select { width: 100%; background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 0.95rem; -webkit-appearance: none; outline: none; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--fire); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-submit { width: 100%; background: linear-gradient(135deg, var(--fire-dark), var(--fire-light)); border: none; border-radius: 12px; padding: 14px; color: white; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 6px; }
+    .form-cancel { width: 100%; background: rgba(255,255,255,0.08); border: none; border-radius: 12px; padding: 12px; color: var(--text-muted); font-size: 0.9rem; cursor: pointer; margin-top: 8px; }
+    .fab { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); right: 20px; width: 58px; height: 58px; background: linear-gradient(135deg, var(--fire-dark), var(--fire-light)); border-radius: 50%; border: none; color: white; font-size: 1.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 24px rgba(192,57,43,0.6); z-index: 200; -webkit-tap-highlight-color: transparent; }
+    .fab:active { transform: scale(0.92); }
+    .delete-card-btn { background: none; border: none; color: rgba(255,100,100,0.4); font-size: 1rem; cursor: pointer; padding: 4px; flex-shrink: 0; }
+    .delete-card-btn:active { color: #e74c3c; }
+    .img-placeholder { width: 54px; height: 76px; border-radius: 6px; background: #0f3460; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <h1>🔥 Tepig TCG Tracker</h1>
+    <button class="refresh-btn" id="refresh-btn" onclick="refreshPrices()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+  <div class="price-status" id="price-status">⚡ Loading live prices…</div>
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-value" id="collected-count">0</div><div class="stat-label">Collected</div></div>
+    <div class="stat"><div class="stat-value" id="remaining-count">0</div><div class="stat-label">Remaining</div></div>
+    <div class="stat"><div class="stat-value" id="total-cost">£0.00</div><div class="stat-label">Still Need</div></div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+</header>
+
+<div id="app"></div>
+
+<!-- Fullscreen Image Modal -->
+<div class="modal-overlay hidden" id="img-modal" onclick="overlayClick(event)">
+  <div class="modal-inner">
+    <img class="modal-img" id="modal-img" src="" alt="" />
+    <button class="modal-close" onclick="closeImgModal()">✕</button>
+    <div class="modal-card-name" id="modal-name"></div>
+    <div class="modal-card-sub"  id="modal-sub"></div>
+    <div class="modal-price-row">
+      <span class="modal-price" id="modal-price"></span>
+      <a class="modal-pc-btn" id="modal-pc-link" href="#" target="_blank" rel="noopener" onclick="event.stopPropagation()">📈 PriceCharting</a>
+    </div>
+  </div>
+</div>
+
+<!-- Add Card Modal -->
+<div class="add-modal hidden" id="add-modal">
+  <div class="add-modal-content">
+    <div class="add-modal-title">➕ Add New Card</div>
+    <div class="form-group">
+      <label>Pokémon</label>
+      <select id="f-pokemon">
+        <option value="Tepig">Tepig</option>
+        <option value="Pignite">Pignite</option>
+        <option value="Emboar">Emboar</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Card Name</label>
+      <input id="f-name" type="text" placeholder="e.g. Tepig, Emboar ex…" />
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Set</label><input id="f-set" type="text" placeholder="e.g. Black & White" /></div>
+      <div class="form-group"><label>Number</label><input id="f-number" type="text" placeholder="e.g. 15/114" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Variant</label>
+        <select id="f-variant">
+          <option>Normal</option><option>Reverse Holo</option><option>Holo</option>
+          <option>Illustration Rare</option><option>SIR</option><option>Holo Promo</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Price (£)</label><input id="f-price" type="number" step="0.01" min="0" placeholder="0.00" /></div>
+    </div>
+    <div class="form-group"><label>Image URL (optional)</label><input id="f-img" type="url" placeholder="https://…" /></div>
+    <button class="form-submit" onclick="submitNewCard()">Add Card 🔥</button>
+    <button class="form-cancel" onclick="closeAddModal()">Cancel</button>
+  </div>
+</div>
+
+<button class="fab" onclick="openAddModal()">＋</button>
+
+<script>
+// ── CARD DATA ──────────────────────────────────────────────────────────────
+const BASE_CARDS = [
+  { id:1,  pokemon:"Tepig",   name:"Tepig",         set:"Black & White",       number:"15/114",  variant:"Normal",            price:0.30,  img:"https://images.pokemontcg.io/bw1/15.png" },
+  { id:2,  pokemon:"Tepig",   name:"Tepig",         set:"Black & White",       number:"15/114",  variant:"Reverse Holo",      price:1.00,  img:"https://images.pokemontcg.io/bw1/15.png" },
+  { id:3,  pokemon:"Tepig",   name:"Tepig",         set:"Black & White",       number:"16/114",  variant:"Normal",            price:0.30,  img:"https://images.pokemontcg.io/bw1/16.png" },
+  { id:4,  pokemon:"Tepig",   name:"Tepig",         set:"Black & White",       number:"16/114",  variant:"Reverse Holo",      price:1.00,  img:"https://images.pokemontcg.io/bw1/16.png" },
+  { id:5,  pokemon:"Tepig",   name:"Tepig",         set:"Dark Explorers",      number:"23/108",  variant:"Normal",            price:0.20,  img:"https://images.pokemontcg.io/bw5/23.png" },
+  { id:6,  pokemon:"Tepig",   name:"Tepig",         set:"Dark Explorers",      number:"23/108",  variant:"Reverse Holo",      price:0.90,  img:"https://images.pokemontcg.io/bw5/23.png" },
+  { id:7,  pokemon:"Tepig",   name:"Tepig",         set:"Boundaries Crossed",  number:"24/149",  variant:"Normal",            price:0.25,  img:"https://images.pokemontcg.io/bw8/24.png" },
+  { id:8,  pokemon:"Tepig",   name:"Tepig",         set:"Boundaries Crossed",  number:"24/149",  variant:"Reverse Holo",      price:1.00,  img:"https://images.pokemontcg.io/bw8/24.png" },
+  { id:9,  pokemon:"Tepig",   name:"Tepig",         set:"Legendary Treasures", number:"25/113",  variant:"Normal",            price:0.30,  img:"https://images.pokemontcg.io/bw11/25.png" },
+  { id:10, pokemon:"Tepig",   name:"Tepig",         set:"Legendary Treasures", number:"25/113",  variant:"Reverse Holo",      price:1.50,  img:"https://images.pokemontcg.io/bw11/25.png" },
+  { id:11, pokemon:"Tepig",   name:"Tepig",         set:"Cosmic Eclipse",      number:"31/236",  variant:"Normal",            price:0.20,  img:"https://images.pokemontcg.io/sm12/31.png" },
+  { id:12, pokemon:"Tepig",   name:"Tepig",         set:"Cosmic Eclipse",      number:"31/236",  variant:"Reverse Holo",      price:0.70,  img:"https://images.pokemontcg.io/sm12/31.png" },
+  { id:13, pokemon:"Tepig",   name:"Tepig",         set:"White Flare",         number:"11/86",   variant:"Normal",            price:0.05,  img:"https://images.pokemontcg.io/sv10pt5/11.png" },
+  { id:14, pokemon:"Tepig",   name:"Tepig",         set:"White Flare",         number:"11/86",   variant:"Reverse Holo",      price:0.50,  img:"https://images.pokemontcg.io/sv10pt5/11.png" },
+  { id:15, pokemon:"Tepig",   name:"Tepig",         set:"White Flare",         number:"96/86",   variant:"Illustration Rare", price:16.00, img:"https://images.pokemontcg.io/sv10pt5/96.png" },
+  { id:16, pokemon:"Tepig",   name:"Tepig",         set:"McDonald's 2011",     number:"7/12",    variant:"Holo Promo",        price:5.00,  img:"https://images.pokemontcg.io/mcd11/7.png" },
+  { id:17, pokemon:"Pignite", name:"Pignite",       set:"Black & White",       number:"17/114",  variant:"Normal",            price:0.50,  img:"https://images.pokemontcg.io/bw1/17.png" },
+  { id:18, pokemon:"Pignite", name:"Pignite",       set:"Black & White",       number:"17/114",  variant:"Reverse Holo",      price:1.00,  img:"https://images.pokemontcg.io/bw1/17.png" },
+  { id:19, pokemon:"Pignite", name:"Pignite",       set:"Black & White",       number:"18/114",  variant:"Normal",            price:0.50,  img:"https://images.pokemontcg.io/bw1/18.png" },
+  { id:20, pokemon:"Pignite", name:"Pignite",       set:"Black & White",       number:"18/114",  variant:"Reverse Holo",      price:1.00,  img:"https://images.pokemontcg.io/bw1/18.png" },
+  { id:21, pokemon:"Pignite", name:"Pignite",       set:"Dark Explorers",      number:"24/108",  variant:"Normal",            price:0.20,  img:"https://images.pokemontcg.io/bw5/24.png" },
+  { id:22, pokemon:"Pignite", name:"Pignite",       set:"Dark Explorers",      number:"24/108",  variant:"Reverse Holo",      price:0.90,  img:"https://images.pokemontcg.io/bw5/24.png" },
+  { id:23, pokemon:"Pignite", name:"Pignite",       set:"Boundaries Crossed",  number:"25/149",  variant:"Normal",            price:0.25,  img:"https://images.pokemontcg.io/bw8/25.png" },
+  { id:24, pokemon:"Pignite", name:"Pignite",       set:"Boundaries Crossed",  number:"25/149",  variant:"Reverse Holo",      price:1.00,  img:"https://images.pokemontcg.io/bw8/25.png" },
+  { id:25, pokemon:"Pignite", name:"Pignite",       set:"Legendary Treasures", number:"26/113",  variant:"Normal",            price:0.30,  img:"https://images.pokemontcg.io/bw11/26.png" },
+  { id:26, pokemon:"Pignite", name:"Pignite",       set:"Legendary Treasures", number:"26/113",  variant:"Reverse Holo",      price:1.50,  img:"https://images.pokemontcg.io/bw11/26.png" },
+  { id:27, pokemon:"Pignite", name:"Pignite",       set:"Cosmic Eclipse",      number:"32/236",  variant:"Normal",            price:0.25,  img:"https://images.pokemontcg.io/sm12/32.png" },
+  { id:28, pokemon:"Pignite", name:"Pignite",       set:"Cosmic Eclipse",      number:"32/236",  variant:"Reverse Holo",      price:0.80,  img:"https://images.pokemontcg.io/sm12/32.png" },
+  { id:29, pokemon:"Pignite", name:"Pignite",       set:"White Flare",         number:"97/86",   variant:"Illustration Rare", price:6.00,  img:"https://images.pokemontcg.io/sv10pt5/97.png" },
+  { id:30, pokemon:"Emboar",  name:"Emboar",        set:"Black & White",       number:"19/114",  variant:"Holo",              price:2.50,  img:"https://images.pokemontcg.io/bw1/19.png" },
+  { id:31, pokemon:"Emboar",  name:"Emboar",        set:"Black & White",       number:"20/114",  variant:"Holo",              price:3.00,  img:"https://images.pokemontcg.io/bw1/20.png" },
+  { id:32, pokemon:"Emboar",  name:"Emboar",        set:"Dark Explorers",      number:"26/108",  variant:"Normal",            price:0.20,  img:"https://images.pokemontcg.io/bw5/26.png" },
+  { id:33, pokemon:"Emboar",  name:"Emboar",        set:"Dark Explorers",      number:"26/108",  variant:"Reverse Holo",      price:1.00,  img:"https://images.pokemontcg.io/bw5/26.png" },
+  { id:34, pokemon:"Emboar",  name:"Emboar",        set:"Boundaries Crossed",  number:"26/149",  variant:"Normal",            price:0.25,  img:"https://images.pokemontcg.io/bw8/26.png" },
+  { id:35, pokemon:"Emboar",  name:"Emboar",        set:"Boundaries Crossed",  number:"26/149",  variant:"Reverse Holo",      price:1.50,  img:"https://images.pokemontcg.io/bw8/26.png" },
+  { id:36, pokemon:"Emboar",  name:"Emboar",        set:"Legendary Treasures", number:"27/113",  variant:"Normal",            price:0.30,  img:"https://images.pokemontcg.io/bw11/27.png" },
+  { id:37, pokemon:"Emboar",  name:"Emboar",        set:"Legendary Treasures", number:"27/113",  variant:"Reverse Holo",      price:2.00,  img:"https://images.pokemontcg.io/bw11/27.png" },
+  { id:38, pokemon:"Emboar",  name:"Emboar",        set:"Cosmic Eclipse",      number:"33/236",  variant:"Normal",            price:0.40,  img:"https://images.pokemontcg.io/sm12/33.png" },
+  { id:39, pokemon:"Emboar",  name:"Emboar",        set:"Cosmic Eclipse",      number:"33/236",  variant:"Reverse Holo",      price:0.90,  img:"https://images.pokemontcg.io/sm12/33.png" },
+  { id:40, pokemon:"Emboar",  name:"Emboar",        set:"White Flare",         number:"98/86",   variant:"Illustration Rare", price:12.00, img:"https://images.pokemontcg.io/sv10pt5/98.png" },
+  { id:41, pokemon:"Emboar",  name:"Mega Emboar ex",set:"Ascended Heroes",     number:"273/217", variant:"SIR",               price:75.00, img:"https://www.serebii.net/card/ascendedheroes/273.jpg" },
+];
+
+const POKEMON_ORDER = ["Tepig","Pignite","Emboar"];
+const POKEMON_ICONS = { Tepig:"https://images.pokemontcg.io/bw1/15.png", Pignite:"https://images.pokemontcg.io/bw1/17.png", Emboar:"https://images.pokemontcg.io/bw1/19.png" };
+const POKEMON_EMOJI = { Tepig:"🐷", Pignite:"🐗", Emboar:"🔥" };
+
+// ── STORAGE ────────────────────────────────────────────────────────────────
+const loadCollected   = () => JSON.parse(localStorage.getItem('tepig-collected')  || '[]');
+const saveCollected   = c  => localStorage.setItem('tepig-collected',  JSON.stringify(c));
+const loadCustomCards = () => JSON.parse(localStorage.getItem('tepig-custom')     || '[]');
+const saveCustomCards = c  => localStorage.setItem('tepig-custom',     JSON.stringify(c));
+
+let collected   = loadCollected();
+let customCards = loadCustomCards();
+let liveCache   = {};  // keyed by "Name|SetName|BaseNum"
+
+const getAllCards = () => [...BASE_CARDS, ...customCards];
+
+// ── LIVE PRICE ENGINE ─────────────────────────────────────────────────────
+const LIVE_KEY  = 'tepig-live-v3';
+const LIVE_TIME = 'tepig-live-time-v3';
+const HIST_KEY  = 'tepig-price-hist-v2';
+const ONE_DAY   = 86_400_000;
+const ONE_WEEK  = 604_800_000;
+
+function apiKey(name, setName, number) {
+  return `${name}|${setName}|${number.split('/')[0]}`;
+}
+
+function variantPriceKeys(variant) {
+  const v = variant.toLowerCase();
+  if (v.includes('reverse'))                               return ['reverseHolofoil'];
+  if (v.includes('sir') || v.includes('special illust'))  return ['specialIllustrationRare','hyperRare','holofoil'];
+  if (v.includes('illustration rare'))                    return ['illustrationRare','holofoil'];
+  if (v.includes('holo promo'))                           return ['holofoil','normal'];
+  if (v.includes('holo') && !v.includes('reverse'))       return ['holofoil','1stEditionHolofoil'];
+  return ['normal','1stEditionNormal','unlimitedNormal'];
+}
+
+function getLivePrice(card) {
+  const live = liveCache[apiKey(card.name, card.set, card.number)];
+  if (!live) return null;
+  const keys = variantPriceKeys(card.variant);
+  for (const k of keys) {
+    if (live.prices?.[k]?.market) return +live.prices[k].market.toFixed(2);
+    if (live.prices?.[k]?.mid)    return +live.prices[k].mid.toFixed(2);
+  }
+  for (const k of Object.keys(live.prices || {})) {
+    if (live.prices[k]?.market) return +live.prices[k].market.toFixed(2);
+  }
+  if (live.cm?.averageSellPrice) return +live.cm.averageSellPrice.toFixed(2);
+  return null;
+}
+
+function getLiveImg(card) {
+  return liveCache[apiKey(card.name, card.set, card.number)]?.img || null;
+}
+
+// Returns 'up' | 'down' | 'same' | null
+function getPriceChange(cardId) {
+  try {
+    const hist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+    if (hist.length < 2) return null;
+    const prev = hist[0].prices[cardId];
+    const curr = hist[hist.length - 1].prices[cardId];
+    if (prev == null || curr == null) return null;
+    if (curr > prev + 0.005) return 'up';
+    if (curr < prev - 0.005) return 'down';
+    return 'same';
+  } catch { return null; }
+}
+
+function savePriceSnapshot(now) {
+  try {
+    const snap = { timestamp: now, prices: {} };
+    getAllCards().forEach(c => { const p = getLivePrice(c); if (p != null) snap.prices[c.id] = p; });
+    const hist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+    if (!hist.length) {
+      localStorage.setItem(HIST_KEY, JSON.stringify([snap])); return;
+    }
+    const latest = hist[hist.length - 1];
+    if (now - latest.timestamp >= ONE_WEEK) {
+      localStorage.setItem(HIST_KEY, JSON.stringify([latest, snap]));
+    } else {
+      const base = hist.length >= 2 ? [hist[0]] : [];
+      localStorage.setItem(HIST_KEY, JSON.stringify([...base, snap]));
+    }
+  } catch(e) {}
+}
+
+function setPriceStatus(state, date) {
+  const el  = document.getElementById('price-status');
+  const btn = document.getElementById('refresh-btn');
+  if (!el) return;
+  btn.classList.remove('spinning');
+  if (state === 'loading') { el.textContent = '⚡ Fetching live prices…'; btn.classList.add('spinning'); return; }
+  if (state === 'offline') { el.textContent = '⚠️ Offline — showing estimates. Tap Refresh to retry.'; return; }
+  if (!date) return;
+  const hist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+  const trackMsg = hist.length >= 2 ? ' · 🟢🔴 price changes shown' : ' · tracking starts after 1 week';
+  const mins = Math.round((Date.now() - date.getTime()) / 60000);
+  const timeMsg = mins < 1 ? 'just now' : mins < 60 ? `${mins}m ago` : `${Math.round(mins/60)}h ago`;
+  el.textContent = `⚡ Live prices · updated ${timeMsg}${trackMsg}`;
+}
+
+async function fetchLiveData(force = false) {
+  const cached = localStorage.getItem(LIVE_KEY);
+  const lastT  = parseInt(localStorage.getItem(LIVE_TIME) || '0');
+  if (!force && cached && (Date.now() - lastT) < ONE_DAY) {
+    liveCache = JSON.parse(cached);
+    render();
+    setPriceStatus('cached', new Date(lastT));
+    return;
+  }
+  setPriceStatus('loading');
+  try {
+    const [r1,r2,r3] = await Promise.all([
+      fetch('https://api.pokemontcg.io/v2/cards?q=name:Tepig&pageSize=50').then(r=>r.json()),
+      fetch('https://api.pokemontcg.io/v2/cards?q=name:Pignite&pageSize=50').then(r=>r.json()),
+      fetch('https://api.pokemontcg.io/v2/cards?q=name:Emboar&pageSize=50').then(r=>r.json()),
+    ]);
+    liveCache = {};
+    [...(r1.data||[]), ...(r2.data||[]), ...(r3.data||[])].forEach(c => {
+      liveCache[apiKey(c.name, c.set.name, c.number)] = {
+        img: c.images.large || c.images.small,
+        prices: c.tcgplayer?.prices || {},
+        cm: c.cardmarket?.prices || {},
+        tcgUrl: c.tcgplayer?.url,
+      };
+    });
+    const now = Date.now();
+    localStorage.setItem(LIVE_KEY, JSON.stringify(liveCache));
+    localStorage.setItem(LIVE_TIME, String(now));
+    savePriceSnapshot(now);
+    render();
+    setPriceStatus('live', new Date(now));
+  } catch(e) {
+    if (cached) liveCache = JSON.parse(cached);
+    setPriceStatus('offline');
+    render();
+  }
+}
+
+function refreshPrices() { fetchLiveData(true); }
+
+// ── PRICECHARTING URL ─────────────────────────────────────────────────────
+function pcUrl(card) {
+  const s = card.set.toLowerCase().replace(/[''`]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const n = card.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const num = card.number.split('/')[0];
+  return `https://www.pricecharting.com/game/pokemon-${s}/${n}-${num}`;
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function variantClass(v) {
+  const vl = v.toLowerCase();
+  if (vl.includes('sir'))          return 'sir';
+  if (vl.includes('illustration')) return 'illustration';
+  if (vl.includes('reverse'))      return 'reverse';
+  if (vl.includes('holo'))         return 'holo';
+  if (vl.includes('promo'))        return 'promo';
+  return '';
+}
+const fmt = n => '£' + Number(n).toFixed(2);
+const esc = s => s.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+
+// ── TOGGLE ──────────────────────────────────────────────────────────────────
+function toggle(id) {
+  const idx = collected.indexOf(id);
+  if (idx === -1) collected.push(id); else collected.splice(idx,1);
+  saveCollected(collected);
+  render();
+}
+
+// ── IMAGE MODAL ─────────────────────────────────────────────────────────────
+function openImg(e, card) {
+  e.stopPropagation();
+  const live  = getLiveImg(card);
+  const src   = live || card.img;
+  const lp    = getLivePrice(card);
+  const dp    = lp ?? card.price;
+  const ch    = getPriceChange(card.id);
+  document.getElementById('modal-img').src         = src;
+  document.getElementById('modal-name').textContent = card.name;
+  document.getElementById('modal-sub').textContent  = `${card.set} · ${card.number} · ${card.variant}`;
+  const mp = document.getElementById('modal-price');
+  mp.textContent = fmt(dp) + (lp != null ? ' (live)' : ' (est.)');
+  mp.className   = 'modal-price' + (ch ? ` price-${ch}` : '');
+  document.getElementById('modal-pc-link').href = pcUrl(card);
+  document.getElementById('img-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function closeImgModal() {
+  document.getElementById('img-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+function overlayClick(e) {
+  if (e.target === document.getElementById('img-modal')) closeImgModal();
+}
+
+// ── ADD CARD MODAL ──────────────────────────────────────────────────────────
+function openAddModal()  { document.getElementById('add-modal').classList.remove('hidden'); document.body.style.overflow='hidden'; }
+function closeAddModal() { document.getElementById('add-modal').classList.add('hidden');    document.body.style.overflow=''; }
+function submitNewCard() {
+  const pokemon = document.getElementById('f-pokemon').value;
+  const name    = document.getElementById('f-name').value.trim()  || pokemon;
+  const set     = document.getElementById('f-set').value.trim()   || 'Custom';
+  const number  = document.getElementById('f-number').value.trim()|| '?';
+  const variant = document.getElementById('f-variant').value;
+  const price   = parseFloat(document.getElementById('f-price').value) || 0;
+  const img     = document.getElementById('f-img').value.trim()   || '';
+  const maxId   = customCards.length ? Math.max(...customCards.map(c=>c.id)) : 9999;
+  customCards.push({ id:maxId+1, pokemon, name, set, number, variant, price, img, custom:true });
+  saveCustomCards(customCards);
+  closeAddModal();
+  ['f-name','f-set','f-number','f-price','f-img'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('f-variant').selectedIndex=0;
+  render();
+}
+function deleteCustomCard(id, e) {
+  e.stopPropagation();
+  if (!confirm('Remove this card?')) return;
+  customCards = customCards.filter(c=>c.id!==id);
+  collected   = collected.filter(c=>c!==id);
+  saveCustomCards(customCards); saveCollected(collected);
+  render();
+}
+
+// ── STATS ───────────────────────────────────────────────────────────────────
+function updateStats() {
+  const all = getAllCards();
+  const need = all.filter(c=>!collected.includes(c.id)).reduce((s,c)=>s+(getLivePrice(c)??c.price),0);
+  const pct  = all.length ? (collected.length/all.length)*100 : 0;
+  document.getElementById('collected-count').textContent = collected.length;
+  document.getElementById('remaining-count').textContent = all.length - collected.length;
+  document.getElementById('total-cost').textContent      = fmt(need);
+  document.getElementById('progress-bar').style.width    = pct+'%';
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  updateStats();
+  const all = getAllCards();
+  document.getElementById('app').innerHTML = POKEMON_ORDER.map(pokemon => {
+    const cards = all.filter(c=>c.pokemon===pokemon);
+    if (!cards.length) return '';
+    const stillNeed  = cards.filter(c=>!collected.includes(c.id)).reduce((s,c)=>s+(getLivePrice(c)??c.price),0);
+    const colCount   = cards.filter(c=>collected.includes(c.id)).length;
+    return `<div class="section">
+      <div class="section-header">
+        <img src="${POKEMON_ICONS[pokemon]}" alt="${pokemon}" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span style=font-size:1.5rem>${POKEMON_EMOJI[pokemon]}</span>')"/>
+        <span>${pokemon}</span>
+        <span class="section-subtitle">${colCount}/${cards.length} · ${fmt(stillNeed)} left</span>
+      </div>
+      <div class="cards-list">
+        ${cards.map(card => {
+          const isCol   = collected.includes(card.id);
+          const liveImg = getLiveImg(card);
+          const imgSrc  = liveImg || card.img;
+          const lp      = getLivePrice(card);
+          const dp      = lp ?? card.price;
+          const ch      = getPriceChange(card.id);
+          const pcClass = ch ? `price-${ch}` : '';
+          const arrow   = ch==='up' ? '<span class="price-arrow up">↑</span>' : ch==='down' ? '<span class="price-arrow down">↓</span>' : '';
+          const liveTag = lp != null ? '<div class="price-tag">live</div>' : '<div class="price-tag">est.</div>';
+          const cardJson = esc(JSON.stringify({id:card.id,pokemon:card.pokemon,name:card.name,set:card.set,number:card.number,variant:card.variant,price:card.price,img:card.img,custom:card.custom||false}));
+          return `<div class="card-item ${isCol?'collected':''}" onclick="toggle(${card.id})">
+            <div class="card-thumb-wrap" onclick="openImg(event, JSON.parse(this.dataset.card))" data-card="${cardJson}">
+              ${imgSrc ? `<img class="card-thumb" src="${imgSrc}" alt="${esc(card.name)}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="img-placeholder" style="display:none;position:absolute;inset:0">🃏</div>` : `<div class="img-placeholder">🃏</div>`}
+              <div class="thumb-overlay">🔍</div>
+            </div>
+            <div class="card-info">
+              <div class="card-name">${card.name}</div>
+              <div class="card-meta">${card.set} · ${card.number}</div>
+              <span class="card-variant ${variantClass(card.variant)}">${card.variant}</span>
+            </div>
+            <div class="card-right">
+              <div class="price-wrap">
+                <a class="card-price-link" href="${pcUrl(card)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+                  <span class="card-price ${pcClass}">${fmt(dp)}</span>${arrow}
+                </a>
+                ${liveTag}
+              </div>
+              <div class="checkbox">
+                <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
+                  <path d="M1 5.5L5 9.5L13 1.5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+            ${card.custom ? `<button class="delete-card-btn" onclick="deleteCustomCard(${card.id},event)">🗑</button>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────
+render();
+fetchLiveData();
+</script>
+</body>
+</html>
