@@ -244,8 +244,8 @@ let liveCache   = {};  // keyed by "Name|SetName|BaseNum"
 const getAllCards = () => [...BASE_CARDS, ...customCards];
 
 // ── LIVE PRICE ENGINE ─────────────────────────────────────────────────────
-const LIVE_KEY  = 'tepig-live-v3';
-const LIVE_TIME = 'tepig-live-time-v3';
+const LIVE_KEY  = 'tepig-live-v5';
+const LIVE_TIME = 'tepig-live-time-v5';
 const HIST_KEY  = 'tepig-price-hist-v2';
 const ONE_DAY   = 86_400_000;
 const ONE_WEEK  = 604_800_000;
@@ -264,8 +264,24 @@ function variantPriceKeys(variant) {
   return ['normal','1stEditionNormal','unlimitedNormal'];
 }
 
+// Smart lookup: exact match first, then fall back to name|set fuzzy match
+function getLiveCacheEntry(card) {
+  const exact = liveCache[apiKey(card.name, card.set, card.number)];
+  if (exact) return exact;
+  const bySet = liveCache['__bySet'];
+  if (!bySet) return null;
+  const matches = bySet[`${card.name}|${card.set}`];
+  if (!matches?.length) return null;
+  // Pick closest card number, or first if unparseable
+  const cardNum = parseInt(card.number);
+  if (isNaN(cardNum)) return matches[0];
+  return [...matches].sort((a,b) =>
+    Math.abs(parseInt(a.number)-cardNum) - Math.abs(parseInt(b.number)-cardNum)
+  )[0];
+}
+
 function getLivePrice(card) {
-  const live = liveCache[apiKey(card.name, card.set, card.number)];
+  const live = getLiveCacheEntry(card);
   if (!live) return null;
   const keys = variantPriceKeys(card.variant);
   for (const k of keys) {
@@ -280,7 +296,7 @@ function getLivePrice(card) {
 }
 
 function getLiveImg(card) {
-  return liveCache[apiKey(card.name, card.set, card.number)]?.img || null;
+  return getLiveCacheEntry(card)?.img || null;
 }
 
 // Returns 'up' | 'down' | 'same' | null
@@ -347,14 +363,22 @@ async function fetchLiveData(force = false) {
       fetch('https://api.pokemontcg.io/v2/cards?q=name:Emboar&pageSize=50').then(r=>r.json()),
     ]);
     liveCache = {};
+    const bySet = {};
     [...(r1.data||[]), ...(r2.data||[]), ...(r3.data||[])].forEach(c => {
-      liveCache[apiKey(c.name, c.set.name, c.number)] = {
+      const entry = {
         img: c.images.large || c.images.small,
         prices: c.tcgplayer?.prices || {},
         cm: c.cardmarket?.prices || {},
         tcgUrl: c.tcgplayer?.url,
+        number: c.number,
       };
+      liveCache[apiKey(c.name, c.set.name, c.number)] = entry;
+      // secondary index: name|setName → array of matches (for fuzzy lookup)
+      const sk = `${c.name}|${c.set.name}`;
+      if (!bySet[sk]) bySet[sk] = [];
+      bySet[sk].push(entry);
     });
+    liveCache['__bySet'] = bySet;
     const now = Date.now();
     localStorage.setItem(LIVE_KEY, JSON.stringify(liveCache));
     localStorage.setItem(LIVE_TIME, String(now));
@@ -372,10 +396,9 @@ function refreshPrices() { fetchLiveData(true); }
 
 // ── PRICECHARTING URL ─────────────────────────────────────────────────────
 function pcUrl(card) {
-  const s = card.set.toLowerCase().replace(/[''`]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-  const n = card.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-  const num = card.number.split('/')[0];
-  return `https://www.pricecharting.com/game/pokemon-${s}/${n}-${num}`;
+  // Use PriceCharting search so it always finds the right card regardless of slug format
+  const q = encodeURIComponent(`${card.name} ${card.set}`);
+  return `https://www.pricecharting.com/search-products?q=${q}&type=pokemon-card`;
 }
 
 // ── HELPERS ────────────────────────────────────────────────────────────────
