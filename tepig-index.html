@@ -1,4 +1,14 @@
 <!DOCTYPE html>
+<script>
+// CACHE BUSTER — runs before anything else, even on old cached versions
+(function(){
+  var V = '20260307-005';
+  var p = new URLSearchParams(window.location.search);
+  if (p.get('v') !== V) {
+    window.location.replace(window.location.pathname + '?v=' + V);
+  }
+})();
+</script>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
