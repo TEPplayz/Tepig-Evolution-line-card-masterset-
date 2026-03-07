@@ -549,6 +549,7 @@
   <h1>🔥 Tepig TCG Masterset</h1>
   <div id="header-actions">
     <button class="hdr-btn" id="refresh-btn" onclick="refreshPrices()">↻ Refresh Prices</button>
+    <button class="hdr-btn" onclick="openSettings()" title="Settings">⚙️</button>
     <span id="last-updated" style="font-size:0.7rem;color:var(--text-muted)"></span>
   </div>
 </div>
@@ -643,6 +644,29 @@
       <button class="btn-save" onclick="saveCustomCard()">Save Card</button>
       <button class="btn-cancel" onclick="closeAddModal()">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settings-modal" onclick="closeSettings(event)">
+  <div class="modal-inner">
+    <button class="modal-close" onclick="closeSettings()">✕</button>
+    <h2>⚙️ Settings</h2>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin:10px 0 16px">Enter your free PriceCharting API token to fetch live ungraded prices directly from PriceCharting.</p>
+    <div class="form-row">
+      <label>PriceCharting API Token</label>
+      <input id="s-pc-token" type="text" placeholder="Paste your token here…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+    </div>
+    <p style="font-size:0.8rem;color:var(--text-muted);margin-top:6px">
+      Get your <b>free</b> token at:
+      <a href="https://www.pricecharting.com/api" target="_blank" rel="noopener" style="color:#e74c3c">pricecharting.com/api</a>
+      — sign in and your token is shown on that page.
+    </p>
+    <div class="form-actions" style="margin-top:16px">
+      <button class="btn-save" onclick="saveSettings()">Save &amp; Fetch Prices</button>
+      <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
+    </div>
+    <div id="s-status" style="margin-top:12px;font-size:0.85rem;color:var(--text-muted)"></div>
   </div>
 </div>
 
@@ -841,7 +865,85 @@ function savePriceHistory() {
 }
 
 // ════════════════════════════════════════
-//  API + MATCHING
+//  SETTINGS
+// ════════════════════════════════════════
+function openSettings() {
+  const token = localStorage.getItem('tepig-pc-token') || '';
+  document.getElementById('s-pc-token').value = token;
+  document.getElementById('s-status').textContent = token ? '✅ Token saved' : '';
+  document.getElementById('settings-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSettings(e) {
+  if (e && e.target !== document.getElementById('settings-modal')) return;
+  document.getElementById('settings-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+async function saveSettings() {
+  const token = document.getElementById('s-pc-token').value.trim();
+  if (!token) { document.getElementById('s-status').textContent = '⚠️ Please enter a token'; return; }
+  localStorage.setItem('tepig-pc-token', token);
+  document.getElementById('s-status').textContent = '⏳ Fetching prices…';
+  const count = await fetchPcPrices(token, true);
+  renderAll();
+  document.getElementById('s-status').textContent = `✅ Fetched prices for ${count} cards!`;
+  updateLastUpdated();
+}
+
+// ════════════════════════════════════════
+//  PRICECHARTING PRICE FETCH
+// ════════════════════════════════════════
+async function fetchPcPrices(token, force = false) {
+  const CACHE_KEY = 'tepig-pc-prices-v5';
+  const CACHE_TIME = 24 * 60 * 60 * 1000;
+
+  if (!force) {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (Date.now() - cached.ts < CACHE_TIME) return 0; // still fresh
+      }
+    } catch(e) {}
+  }
+
+  let count = 0;
+  const GBP_RATE = 0.79;
+
+  for (const card of CARDS) {
+    if (!card.pcUrl) continue;
+    // Extract slug from pcUrl: https://www.pricecharting.com/game/set-name/card-slug → card-slug
+    const slug = card.pcUrl.split('/').pop();
+    if (!slug) continue;
+
+    try {
+      const res = await fetch(
+        `https://www.pricecharting.com/api/product?id=${encodeURIComponent(slug)}&status=price&access_token=${encodeURIComponent(token)}`
+      );
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (data.status === 'error') continue;
+      // loose-price is in cents (USD)
+      const looseUsd = data['loose-price'];
+      if (looseUsd != null && looseUsd > 0) {
+        const gbp = (looseUsd / 100) * GBP_RATE;
+        storePricePoint(card.id, gbp);
+        count++;
+      }
+    } catch(e) { /* skip this card */ }
+
+    // Small delay to avoid hammering the API
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now() }));
+  savePrices();
+  savePriceHistory();
+  return count;
+}
+
+// ════════════════════════════════════════
+//  API + MATCHING (fallback for images only)
 // ════════════════════════════════════════
 async function loadApiData(force = false) {
   const CACHE_KEY = 'tepig-api-v5';
@@ -852,24 +954,19 @@ async function loadApiData(force = false) {
       const raw = localStorage.getItem(CACHE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Date.now() - parsed.ts < CACHE_TIME) {
-          processApiData(parsed.data);
-          return;
-        }
+        if (Date.now() - parsed.ts < CACHE_TIME) return; // still fresh, skip
       }
     } catch(e) {}
   }
 
   try {
     const res = await fetch(
-      'https://api.pokemontcg.io/v2/cards?q=name:"Tepig" OR name:"Pignite" OR name:"Emboar"&pageSize=250',
-      { headers: { 'X-Api-Key': '' } }
+      'https://api.pokemontcg.io/v2/cards?q=name:"Tepig" OR name:"Pignite" OR name:"Emboar"&pageSize=250'
     );
     if (!res.ok) throw new Error('API error ' + res.status);
     const json = await res.json();
     const data = json.data || [];
     localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
-    processApiData(data);
     updateLastUpdated();
   } catch(e) {
     console.warn('TCG API fetch failed:', e);
@@ -1306,9 +1403,15 @@ async function refreshPrices() {
   btn.classList.add('loading');
   btn.innerHTML = '<span class="spinner"></span> Refreshing…';
   try {
-    await loadApiData(true);
-    renderAll();
-    showToast('✅ Prices updated!');
+    const token = localStorage.getItem('tepig-pc-token');
+    if (token) {
+      const count = await fetchPcPrices(token, true);
+      renderAll();
+      showToast(count > 0 ? `✅ Updated ${count} prices!` : '⚠️ No prices returned — check your token in ⚙️');
+    } else {
+      showToast('⚙️ Add your PriceCharting token in Settings first!');
+    }
+    updateLastUpdated();
   } catch(e) {
     showToast('❌ Refresh failed');
   }
@@ -1339,9 +1442,13 @@ function showToast(msg) {
 async function init() {
   loadState();
   renderAll();
-  await loadApiData(false);
-  // Re-render after API data loads to show images + prices
-  renderAll();
+  // Fetch prices from PriceCharting if token exists
+  const token = localStorage.getItem('tepig-pc-token');
+  if (token) {
+    await fetchPcPrices(token, false);
+    renderAll();
+    updateLastUpdated();
+  }
 }
 
 init();
