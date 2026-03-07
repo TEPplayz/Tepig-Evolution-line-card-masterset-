@@ -698,6 +698,18 @@
       <label>Rarity</label>
       <input id="f-rarity" type="text" placeholder="e.g. Common, Rare Holo"/>
     </div>
+    <div class="form-row">
+      <label>Card Image URL</label>
+      <input id="f-img" type="url" placeholder="https://… (paste image link)"/>
+    </div>
+    <div class="form-row">
+      <label>Manual Price (£)</label>
+      <input id="f-price" type="number" min="0" step="0.01" placeholder="e.g. 1.50 (optional)"/>
+    </div>
+    <div class="form-row">
+      <label>PriceCharting URL</label>
+      <input id="f-pcurl" type="url" placeholder="https://www.pricecharting.com/…"/>
+    </div>
     <div class="form-actions">
       <button class="btn-save" onclick="saveCustomCard()">Save Card</button>
       <button class="btn-cancel" onclick="closeAddModal()">Cancel</button>
@@ -1401,9 +1413,13 @@ function saveCustomCard() {
   else if (nameLower.includes('emboar')) section = 'emboar';
   if (language === 'JPN') section = 'japanese';
 
+  const imgUrl  = document.getElementById('f-img').value.trim()   || null;
+  const pcUrl   = document.getElementById('f-pcurl').value.trim() || null;
+  const priceRaw = parseFloat(document.getElementById('f-price').value);
+
   const id = `custom-${Date.now()}`;
-  const pcSlug = `${name.toLowerCase()} ${set.toLowerCase()} ${number}`.trim();
-  const card = { id, name, set, setCode, number, rarity, variant, language, section, pcSlug, custom: true };
+  const card = { id, name, set, setCode, number, rarity, variant, language, section, custom: true,
+    imgUrl, pcUrl };
 
   // Save to localStorage
   let customs = [];
@@ -1414,11 +1430,19 @@ function saveCustomCard() {
   customs.push(card);
   localStorage.setItem('tepig-custom-v5', JSON.stringify(customs));
 
+  // Store manual price if provided
+  if (!isNaN(priceRaw) && priceRaw > 0) {
+    let pd = {};
+    try { pd = JSON.parse(localStorage.getItem('tepig-prices-v6') || '{}'); } catch(e) {}
+    pd[id] = priceRaw;
+    localStorage.setItem('tepig-prices-v6', JSON.stringify(pd));
+  }
+
   CARDS.push(card);
   closeAddModal();
 
   // Clear form
-  ['f-set','f-setcode','f-number','f-variant','f-rarity'].forEach(id => {
+  ['f-set','f-setcode','f-number','f-variant','f-rarity','f-img','f-price','f-pcurl'].forEach(id => {
     document.getElementById(id).value = '';
   });
 
