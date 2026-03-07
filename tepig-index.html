@@ -287,6 +287,17 @@
   .card-price.price-down { color: var(--red); }
   .card-price.price-known { color: var(--text); }
   .price-arrow { font-size: 0.65rem; }
+  .card-delete-btn {
+    display: block;
+    margin-top: 4px;
+    background: none;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    opacity: 0.6;
+    padding: 2px;
+  }
+  .card-delete-btn:hover { opacity: 1; }
   .card-checkbox-wrap {
     display: flex;
     align-items: center;
@@ -1201,6 +1212,7 @@ function renderCardRow(card) {
     </div>
     <div class="card-checkbox-wrap">
       <input type="checkbox" class="card-checkbox" data-id="${card.id}" ${isCollected ? 'checked' : ''} onchange="toggleCollected('${card.id}')"/>
+      ${card.custom ? `<button class="card-delete-btn" onclick="deleteCustomCardById('${card.id}')" title="Delete card">🗑️</button>` : ''}
     </div>
   </div>`;
 }
@@ -1333,22 +1345,26 @@ function closeImgModal(e) {
   document.body.style.overflow = '';
 }
 
-function deleteCustomCard() {
-  const card = CARDS.find(c => c.id === _currentViewerCardId);
+function deleteCustomCardById(cardId) {
+  const card = CARDS.find(c => c.id === cardId);
   if (!card || !card.custom) return;
   if (!confirm(`Delete "${card.name}" (${card.set})? This cannot be undone.`)) return;
-  // Remove from localStorage
   try {
     let customs = JSON.parse(localStorage.getItem('tepig-custom-v5') || '[]');
-    customs = customs.filter(c => c.id !== card.id);
+    customs = customs.filter(c => c.id !== cardId);
     localStorage.setItem('tepig-custom-v5', JSON.stringify(customs));
   } catch(e) {}
-  // Remove from CARDS array
-  CARDS = CARDS.filter(c => c.id !== card.id);
-  document.getElementById('img-modal').classList.remove('open');
-  document.body.style.overflow = '';
+  CARDS = CARDS.filter(c => c.id !== cardId);
   renderAll();
   showToast('🗑️ Card deleted!');
+}
+
+function deleteCustomCard() {
+  if (_currentViewerCardId) {
+    deleteCustomCardById(_currentViewerCardId);
+    document.getElementById('img-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
 }
 
 // ════════════════════════════════════════
