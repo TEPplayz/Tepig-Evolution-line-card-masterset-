@@ -676,10 +676,14 @@
       <input id="f-set" type="text" placeholder="e.g. Black & White"/>
     </div>
     <div class="form-row">
+      <label>TCGDex URL <span style="font-size:0.75em;opacity:0.6">(for live prices — paste URL or just type e.g. bw1-15)</span></label>
+      <input id="f-tcgdex" type="text" placeholder="https://api.tcgdex.net/v2/en/cards/bw1-15  or  bw1-15"/>
+    </div>
+    <div class="form-row" style="display:none">
       <label>Set Code</label>
       <input id="f-setcode" type="text" placeholder="e.g. bw1"/>
     </div>
-    <div class="form-row">
+    <div class="form-row" style="display:none">
       <label>Card Number</label>
       <input id="f-number" type="text" placeholder="e.g. 15"/>
     </div>
@@ -1395,8 +1399,19 @@ function closeAddModal(e) {
 function saveCustomCard() {
   const name = document.getElementById('f-name').value.trim();
   const set = document.getElementById('f-set').value.trim();
-  const setCode = document.getElementById('f-setcode').value.trim() || 'custom';
-  const number = document.getElementById('f-number').value.trim();
+  // Parse TCGDex URL or ID (e.g. "bw1-15" or "https://api.tcgdex.net/v2/en/cards/bw1-15")
+  const tcgdexRaw = document.getElementById('f-tcgdex').value.trim();
+  let derivedTcgdexId = null;
+  if (tcgdexRaw) {
+    // Extract the ID from a full URL or use as-is
+    const match = tcgdexRaw.match(/cards\/([a-zA-Z0-9]+-[a-zA-Z0-9]+)\/?$/);
+    derivedTcgdexId = match ? match[1].toLowerCase() : tcgdexRaw.toLowerCase();
+  }
+  // Derive setCode + number from the TCGDex ID (e.g. "bw1-15" → setCode="bw1", number="15")
+  const setCode = document.getElementById('f-setcode').value.trim()
+    || (derivedTcgdexId ? derivedTcgdexId.replace(/-[^-]+$/, '') : 'custom');
+  const number = document.getElementById('f-number').value.trim()
+    || (derivedTcgdexId ? derivedTcgdexId.replace(/^.*-/, '') : '');
   const variant = document.getElementById('f-variant').value.trim();
   const language = document.getElementById('f-lang').value;
   const rarity = document.getElementById('f-rarity').value.trim() || 'Unknown';
@@ -1419,8 +1434,8 @@ function saveCustomCard() {
   const priceRaw = parseFloat(document.getElementById('f-price').value);
 
   const id = `custom-${Date.now()}`;
-  // Auto-derive TCGDex ID from setCode + number so live prices fetch automatically
-  const tcgdexId = (setCode && number) ? `${setCode.toLowerCase()}-${number.toLowerCase()}` : null;
+  // Use parsed TCGDex ID (from URL field) or fall back to setCode+number
+  const tcgdexId = derivedTcgdexId || ((setCode && number && setCode !== 'custom') ? `${setCode.toLowerCase()}-${number.toLowerCase()}` : null);
   const card = { id, name, set, setCode, number, rarity, variant, language, section, custom: true,
     imgUrl, pcUrl, tcgdexId };
 
@@ -1445,7 +1460,7 @@ function saveCustomCard() {
   closeAddModal();
 
   // Clear form
-  ['f-set','f-setcode','f-number','f-variant','f-rarity','f-img','f-price','f-pcurl'].forEach(id => {
+  ['f-tcgdex','f-set','f-setcode','f-number','f-variant','f-rarity','f-img','f-price','f-pcurl'].forEach(id => {
     document.getElementById(id).value = '';
   });
 
