@@ -603,6 +603,7 @@
     <button class="modal-close" onclick="closeImgModal()">✕</button>
     <img id="img-modal-img" src="" alt="Card"/>
     <button id="img-modal-edit-btn" onclick="openEditFromViewer()" style="margin-top:12px;width:100%;padding:10px;background:#e74c3c;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;">✏️ Edit Card Details</button>
+    <button id="img-modal-delete-btn" onclick="deleteCustomCard()" style="display:none;margin-top:8px;width:100%;padding:10px;background:#7f0000;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;">🗑️ Delete Custom Card</button>
   </div>
 </div>
 
@@ -1315,6 +1316,8 @@ function openImgModal(cardId) {
   img.src = card.imgUrl.replace(/\.png$/, '_hires.png');
   document.getElementById('img-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
+  // Show delete button only for custom cards
+  document.getElementById('img-modal-delete-btn').style.display = card.custom ? 'block' : 'none';
 
   // Swipe down to close
   let startY = 0;
@@ -1328,6 +1331,24 @@ function closeImgModal(e) {
   if (e && e.target !== document.getElementById('img-modal')) return;
   document.getElementById('img-modal').classList.remove('open');
   document.body.style.overflow = '';
+}
+
+function deleteCustomCard() {
+  const card = CARDS.find(c => c.id === _currentViewerCardId);
+  if (!card || !card.custom) return;
+  if (!confirm(`Delete "${card.name}" (${card.set})? This cannot be undone.`)) return;
+  // Remove from localStorage
+  try {
+    let customs = JSON.parse(localStorage.getItem('tepig-custom-v5') || '[]');
+    customs = customs.filter(c => c.id !== card.id);
+    localStorage.setItem('tepig-custom-v5', JSON.stringify(customs));
+  } catch(e) {}
+  // Remove from CARDS array
+  CARDS = CARDS.filter(c => c.id !== card.id);
+  document.getElementById('img-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  renderAll();
+  showToast('🗑️ Card deleted!');
 }
 
 // ════════════════════════════════════════
