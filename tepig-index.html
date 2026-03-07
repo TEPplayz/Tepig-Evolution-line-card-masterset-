@@ -9,6 +9,9 @@
 <meta name="apple-mobile-web-app-title" content="Tepig TCG"/>
 <title>🔥 Tepig TCG Masterset</title>
 <link rel="manifest" href="manifest.json"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <meta http-equiv="Pragma" content="no-cache"/>
+  <meta http-equiv="Expires" content="0"/>
 <link rel="apple-touch-icon" href="pokeball.png"/>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1635,5 +1638,31 @@ async function init() {
 init();
 </script>
 
+
+<script>
+// Register service worker for auto-updates
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      // Check for updates every time the app is opened
+      reg.update();
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        newSW.addEventListener('statechange', () => {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version ready — reload automatically
+            showToast('🔄 App updated! Reloading...');
+            setTimeout(() => window.location.reload(), 1500);
+          }
+        });
+      });
+    });
+    // If controller changes (new SW took over), reload
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+  });
+}
+</script>
 </body>
 </html>
