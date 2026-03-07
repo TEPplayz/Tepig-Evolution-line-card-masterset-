@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Tepig TCG Tracker</title>
+  <meta name="description" content="Track your Tepig evolution line Pokémon TCG card collection" />
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Tepig TCG" />
+  <link rel="apple-touch-icon" href="https://images.pokemontcg.io/bw1/19.png" />
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#c0392b" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --fire: #c0392b;
+      --fire-light: #e74c3c;
+      --fire-dark: #922b21;
+      --bg: #1a1a2e;
+      --card-bg: #16213e;
+      --card-border: #0f3460;
+      --text: #eee;
+      --text-muted: #aaa;
+      --checked: #2ecc71;
+      --checked-bg: #1a3a2a;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--fire-dark), var(--fire-light));
+      padding: 20px 16px 16px;
+      padding-top: calc(20px + env(safe-area-inset-top));
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(192,57,43,0.4);
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    header h1 span { font-size: 1.4rem; }
+
+    .stats-bar {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 12px;
+      gap: 8px;
+    }
+
+    .stat {
+      background: rgba(0,0,0,0.25);
+      border-radius: 10px;
+      padding: 8px 12px;
+      flex: 1;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.3rem;
+      font-weight: 800;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      opacity: 0.85;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .progress-wrap {
+      background: rgba(0,0,0,0.3);
+      border-radius: 20px;
+      height: 8px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #f39c12, #27ae60);
+      border-radius: 20px;
+      transition: width 0.4s ease;
+    }
+
+    .section {
+      margin: 16px 12px 0;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, var(--fire-dark), var(--fire));
+      border-radius: 14px 14px 0 0;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .section-header img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+    }
+
+    .section-subtitle {
+      margin-left: auto;
+      font-size: 0.75rem;
+      opacity: 0.85;
+      font-weight: 500;
+    }
+
+    .cards-list {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-top: none;
+      border-radius: 0 0 14px 14px;
+      overflow: hidden;
+    }
+
+    .card-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      transition: background 0.2s;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .card-item:last-child { border-bottom: none; }
+    .card-item:active { background: rgba(255,255,255,0.05); }
+
+    .card-item.collected {
+      background: var(--checked-bg);
+      opacity: 0.7;
+    }
+
+    .card-thumb {
+      width: 48px;
+      height: 68px;
+      object-fit: contain;
+      border-radius: 4px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .card-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .card-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-meta {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-variant {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-top: 4px;
+      font-weight: 600;
+      background: rgba(192,57,43,0.3);
+      color: #ff9f9f;
+    }
+
+    .card-variant.holo { background: rgba(155,89,182,0.3); color: #d7aefb; }
+    .card-variant.reverse { background: rgba(41,128,185,0.3); color: #85c1e9; }
+    .card-variant.illustration { background: rgba(39,174,96,0.3); color: #a9dfbf; }
+    .card-variant.sir { background: rgba(243,156,18,0.3); color: #fad7a0; }
+    .card-variant.promo { background: rgba(231,76,60,0.3); color: #f1948a; }
+
+    .card-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .card-price {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #f1c40f;
+    }
+
+    .card-item.collected .card-price {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .checkbox {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .card-item.collected .checkbox {
+      background: var(--checked);
+      border-color: var(--checked);
+    }
+
+    .checkbox svg {
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .card-item.collected .checkbox svg { opacity: 1; }
+
+    footer {
+      text-align: center;
+      padding: 24px 16px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .pop { animation: pop 0.25s ease; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1><span>🔥</span> Tepig TCG Tracker</h1>
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-value" id="collected-count">0</div>
+      <div class="stat-label">Collected</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="remaining-count">41</div>
+      <div class="stat-label">Remaining</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="total-cost">£0.00</div>
+      <div class="stat-label">Still Need (£)</div>
+    </div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+  </div>
+</header>
+
+<div id="app"></div>
+
+<footer>Tap a card to mark it as collected 🃏<br>Progress saves automatically</footer>
+
+<script>
+const CARDS = [
+  { id:1,  pokemon:"Tepig",   name:"Tepig",         set:"Black & White",         number:"15/114", variant:"Normal",           price:0.30, img:"https://images.pokemontcg.io/bw1/15.png" },
+  { id:2,  pokemon:"Tepig",   name:"Tepig",         set:"Black & White",         number:"15/114", variant:"Reverse Holo",     price:0.80, img:"https://images.pokemontcg.io/bw1/15.png" },
+  { id:3,  pokemon:"Tepig",   name:"Tepig",         set:"Black & White",         number:"16/114", variant:"Normal",           price:0.30, img:"https://images.pokemontcg.io/bw1/16.png" },
+  { id:4,  pokemon:"Tepig",   name:"Tepig",         set:"Black & White",         number:"16/114", variant:"Reverse Holo",     price:0.80, img:"https://images.pokemontcg.io/bw1/16.png" },
+  { id:5,  pokemon:"Tepig",   name:"Tepig",         set:"Dark Explorers",        number:"23/108", variant:"Normal",           price:0.20, img:"https://images.pokemontcg.io/de/23.png" },
+  { id:6,  pokemon:"Tepig",   name:"Tepig",         set:"Dark Explorers",        number:"23/108", variant:"Reverse Holo",     price:0.90, img:"https://images.pokemontcg.io/de/23.png" },
+  { id:7,  pokemon:"Tepig",   name:"Tepig",         set:"Boundaries Crossed",    number:"24/149", variant:"Normal",           price:0.25, img:"https://images.pokemontcg.io/bc/24.png" },
+  { id:8,  pokemon:"Tepig",   name:"Tepig",         set:"Boundaries Crossed",    number:"24/149", variant:"Reverse Holo",     price:1.00, img:"https://images.pokemontcg.io/bc/24.png" },
+  { id:9,  pokemon:"Tepig",   name:"Tepig",         set:"Legendary Treasures",   number:"25/113", variant:"Normal",           price:0.30, img:"https://images.pokemontcg.io/lt/25.png" },
+  { id:10, pokemon:"Tepig",   name:"Tepig",         set:"Legendary Treasures",   number:"25/113", variant:"Reverse Holo",     price:1.50, img:"https://images.pokemontcg.io/lt/25.png" },
+  { id:11, pokemon:"Tepig",   name:"Tepig",         set:"Cosmic Eclipse",        number:"31/236", variant:"Normal",           price:0.20, img:"https://images.pokemontcg.io/sm12/31.png" },
+  { id:12, pokemon:"Tepig",   name:"Tepig",         set:"Cosmic Eclipse",        number:"31/236", variant:"Reverse Holo",     price:0.70, img:"https://images.pokemontcg.io/sm12/31.png" },
+  { id:13, pokemon:"Tepig",   name:"Tepig",         set:"White Flare",           number:"11/86",  variant:"Normal",           price:0.05, img:"https://images.pokemontcg.io/sv10pt5/11.png" },
+  { id:14, pokemon:"Tepig",   name:"Tepig",         set:"White Flare",           number:"11/86",  variant:"Reverse Holo",     price:0.50, img:"https://images.pokemontcg.io/sv10pt5/11.png" },
+  { id:15, pokemon:"Tepig",   name:"Tepig",         set:"White Flare",           number:"96/86",  variant:"Illustration Rare",price:16.00,img:"https://images.pokemontcg.io/sv10pt5/96.png" },
+  { id:16, pokemon:"Tepig",   name:"Tepig",         set:"McDonald's 2011",       number:"7/12",   variant:"Holo Promo",       price:5.00, img:"https://images.pokemontcg.io/mcd/7.png" },
+  { id:17, pokemon:"Pignite", name:"Pignite",       set:"Black & White",         number:"17/114", variant:"Normal",           price:0.50, img:"https://images.pokemontcg.io/bw1/17.png" },
+  { id:18, pokemon:"Pignite", name:"Pignite",       set:"Black & White",         number:"17/114", variant:"Reverse Holo",     price:1.00, img:"https://images.pokemontcg.io/bw1/17.png" },
+  { id:19, pokemon:"Pignite", name:"Pignite",       set:"Black & White",         number:"18/114", variant:"Normal",           price:0.50, img:"https://images.pokemontcg.io/bw1/18.png" },
+  { id:20, pokemon:"Pignite", name:"Pignite",       set:"Black & White",         number:"18/114", variant:"Reverse Holo",     price:1.00, img:"https://images.pokemontcg.io/bw1/18.png" },
+  { id:21, pokemon:"Pignite", name:"Pignite",       set:"Dark Explorers",        number:"24/108", variant:"Normal",           price:0.20, img:"https://images.pokemontcg.io/de/24.png" },
+  { id:22, pokemon:"Pignite", name:"Pignite",       set:"Dark Explorers",        number:"24/108", variant:"Reverse Holo",     price:0.90, img:"https://images.pokemontcg.io/de/24.png" },
+  { id:23, pokemon:"Pignite", name:"Pignite",       set:"Boundaries Crossed",    number:"25/149", variant:"Normal",           price:0.25, img:"https://images.pokemontcg.io/bc/25.png" },
+  { id:24, pokemon:"Pignite", name:"Pignite",       set:"Boundaries Crossed",    number:"25/149", variant:"Reverse Holo",     price:1.00, img:"https://images.pokemontcg.io/bc/25.png" },
+  { id:25, pokemon:"Pignite", name:"Pignite",       set:"Legendary Treasures",   number:"26/113", variant:"Normal",           price:0.30, img:"https://images.pokemontcg.io/lt/26.png" },
+  { id:26, pokemon:"Pignite", name:"Pignite",       set:"Legendary Treasures",   number:"26/113", variant:"Reverse Holo",     price:1.50, img:"https://images.pokemontcg.io/lt/26.png" },
+  { id:27, pokemon:"Pignite", name:"Pignite",       set:"Cosmic Eclipse",        number:"32/236", variant:"Normal",           price:0.25, img:"https://images.pokemontcg.io/sm12/32.png" },
+  { id:28, pokemon:"Pignite", name:"Pignite",       set:"Cosmic Eclipse",        number:"32/236", variant:"Reverse Holo",     price:0.80, img:"https://images.pokemontcg.io/sm12/32.png" },
+  { id:29, pokemon:"Pignite", name:"Pignite",       set:"White Flare",           number:"97/86",  variant:"Illustration Rare",price:6.00, img:"https://images.pokemontcg.io/sv10pt5/97.png" },
+  { id:30, pokemon:"Emboar",  name:"Emboar",        set:"Black & White",         number:"19/114", variant:"Holo",             price:2.50, img:"https://images.pokemontcg.io/bw1/19.png" },
+  { id:31, pokemon:"Emboar",  name:"Emboar",        set:"Black & White",         number:"20/114", variant:"Holo",             price:3.00, img:"https://images.pokemontcg.io/bw1/20.png" },
+  { id:32, pokemon:"Emboar",  name:"Emboar",        set:"Dark Explorers",        number:"26/108", variant:"Normal",           price:0.20, img:"https://images.pokemontcg.io/de/26.png" },
+  { id:33, pokemon:"Emboar",  name:"Emboar",        set:"Dark Explorers",        number:"26/108", variant:"Reverse Holo",     price:1.00, img:"https://images.pokemontcg.io/de/26.png" },
+  { id:34, pokemon:"Emboar",  name:"Emboar",        set:"Boundaries Crossed",    number:"26/149", variant:"Normal",           price:0.25, img:"https://images.pokemontcg.io/bc/26.png" },
+  { id:35, pokemon:"Emboar",  name:"Emboar",        set:"Boundaries Crossed",    number:"26/149", variant:"Reverse Holo",     price:1.50, img:"https://images.pokemontcg.io/bc/26.png" },
+  { id:36, pokemon:"Emboar",  name:"Emboar",        set:"Legendary Treasures",   number:"27/113", variant:"Normal",           price:0.30, img:"https://images.pokemontcg.io/lt/27.png" },
+  { id:37, pokemon:"Emboar",  name:"Emboar",        set:"Legendary Treasures",   number:"27/113", variant:"Reverse Holo",     price:2.00, img:"https://images.pokemontcg.io/lt/27.png" },
+  { id:38, pokemon:"Emboar",  name:"Emboar",        set:"Cosmic Eclipse",        number:"33/236", variant:"Normal",           price:0.40, img:"https://images.pokemontcg.io/sm12/33.png" },
+  { id:39, pokemon:"Emboar",  name:"Emboar",        set:"Cosmic Eclipse",        number:"33/236", variant:"Reverse Holo",     price:0.90, img:"https://images.pokemontcg.io/sm12/33.png" },
+  { id:40, pokemon:"Emboar",  name:"Emboar",        set:"White Flare",           number:"98/86",  variant:"Illustration Rare",price:12.00,img:"https://images.pokemontcg.io/sv10pt5/98.png" },
+  { id:41, pokemon:"Emboar",  name:"Mega Emboar ex",set:"Ascended Heroes",       number:"273/217",variant:"SIR",              price:75.00,img:"https://images.pokemontcg.io/asc273.png" },
+];
+
+const POKEMON_ORDER = ["Tepig","Pignite","Emboar"];
+const POKEMON_ICONS = {
+  Tepig:   "https://images.pokemontcg.io/bw1/15.png",
+  Pignite: "https://images.pokemontcg.io/bw1/17.png",
+  Emboar:  "https://images.pokemontcg.io/bw1/19.png"
+};
+
+let collected = JSON.parse(localStorage.getItem('tepig-collected') || '[]');
+
+function variantClass(v) {
+  const vl = v.toLowerCase();
+  if (vl.includes('sir')) return 'sir';
+  if (vl.includes('illustration')) return 'illustration';
+  if (vl.includes('reverse')) return 'reverse';
+  if (vl.includes('holo')) return 'holo';
+  if (vl.includes('promo')) return 'promo';
+  return '';
+}
+
+function save() {
+  localStorage.setItem('tepig-collected', JSON.stringify(collected));
+}
+
+function toggle(id) {
+  const idx = collected.indexOf(id);
+  if (idx === -1) collected.push(id);
+  else collected.splice(idx, 1);
+  save();
+  render();
+}
+
+function fmt(n) { return '£' + n.toFixed(2); }
+
+function updateStats() {
+  const stillNeed = CARDS.filter(c => !collected.includes(c.id)).reduce((s,c) => s + c.price, 0);
+  const pct = (collected.length / CARDS.length) * 100;
+  document.getElementById('collected-count').textContent = collected.length;
+  document.getElementById('remaining-count').textContent = CARDS.length - collected.length;
+  document.getElementById('total-cost').textContent = fmt(stillNeed);
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+function render() {
+  updateStats();
+  const app = document.getElementById('app');
+  app.innerHTML = POKEMON_ORDER.map(pokemon => {
+    const cards = CARDS.filter(c => c.pokemon === pokemon);
+    const stillNeed = cards.filter(c => !collected.includes(c.id)).reduce((s,c) => s + c.price, 0);
+    const collectedCount = cards.filter(c => collected.includes(c.id)).length;
+    return `
+      <div class="section">
+        <div class="section-header">
+          <img src="${POKEMON_ICONS[pokemon]}" alt="${pokemon}" />
+          <span>${pokemon}</span>
+          <span class="section-subtitle">${collectedCount}/${cards.length} · ${fmt(stillNeed)} left</span>
+        </div>
+        <div class="cards-list">
+          ${cards.map(card => {
+            const isCollected = collected.includes(card.id);
+            return `
+              <div class="card-item ${isCollected ? 'collected' : ''}" onclick="toggle(${card.id})">
+                <img class="card-thumb" src="${card.img}" alt="${card.name}" loading="lazy" />
+                <div class="card-info">
+                  <div class="card-name">${card.name}</div>
+                  <div class="card-meta">${card.set} · ${card.number}</div>
+                  <span class="card-variant ${variantClass(card.variant)}">${card.variant}</span>
+                </div>
+                <div class="card-right">
+                  <div class="card-price">${fmt(card.price)}</div>
+                  <div class="checkbox">
+                    <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
+                      <path d="M1 5.5L5 9.5L13 1.5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+render();
+</script>
+</body>
+</html>
