@@ -2,14 +2,15 @@
   "name": "Tepig TCG Tracker",
   "short_name": "Tepig TCG",
   "description": "Track your Tepig evolution line Pokémon TCG card collection",
-  "start_url": ".",
+  "start_url": "./app.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#c0392b",
   "icons": [
     {
-      "src": "https://images.pokemontcg.io/bw1/19.png",
-      "sizes": "any",
+      "src": "pokeball.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     }
