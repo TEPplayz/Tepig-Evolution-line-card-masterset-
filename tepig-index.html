@@ -201,6 +201,25 @@
     line-height: 61px;
     width: 100%;
     height: 61px;
+    position: relative;
+  }
+  .card-thumb-placeholder.editable {
+    cursor: pointer;
+    line-height: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    height: 61px;
+    border: 1.5px dashed rgba(255,255,255,0.25);
+    border-radius: 6px;
+    transition: border-color 0.2s;
+  }
+  .card-thumb-placeholder.editable:active { border-color: #e74c3c; }
+  .placeholder-edit-hint {
+    font-size: 0.65rem;
+    opacity: 0.6;
   }
   .card-info { flex: 1; min-width: 0; }
   .card-name-row {
@@ -967,7 +986,7 @@ function getBestPriceTier(prices, card) {
 async function fetchTcgPrices(force = false) {
   await loadApiData(force);
   try {
-    const raw = localStorage.getItem('tepig-api-v5');
+    const raw = localStorage.getItem('tepig-api-v6');
     if (!raw) return 0;
     const parsed = JSON.parse(raw);
     if (!parsed.data) return 0;
@@ -985,7 +1004,7 @@ async function fetchTcgPrices(force = false) {
 //  API + MATCHING (fallback for images only)
 // ════════════════════════════════════════
 async function loadApiData(force = false) {
-  const CACHE_KEY = 'tepig-api-v5';
+  const CACHE_KEY = 'tepig-api-v6';
   const CACHE_TIME = 24 * 60 * 60 * 1000;
 
   if (!force) {
@@ -999,12 +1018,16 @@ async function loadApiData(force = false) {
   }
 
   try {
-    const res = await fetch(
-      'https://api.pokemontcg.io/v2/cards?q=name:"Tepig" OR name:"Pignite" OR name:"Emboar"&pageSize=250'
-    );
-    if (!res.ok) throw new Error('API error ' + res.status);
-    const json = await res.json();
-    const data = json.data || [];
+    // Fetch each Pokémon separately to avoid complex query encoding issues
+    const names = ['Tepig', 'Pignite', 'Emboar'];
+    let data = [];
+    for (const name of names) {
+      const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('name:' + name)}&pageSize=250`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('API error ' + res.status + ' for ' + name);
+      const json = await res.json();
+      data = data.concat(json.data || []);
+    }
     localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
     updateLastUpdated();
   } catch(e) {
@@ -1168,10 +1191,15 @@ function getBadges(card) {
   return badges.join('');
 }
 
+function imgLoadError(imgEl, cardId, emoji) {
+  imgEl.parentElement.innerHTML = `<div class="card-thumb-placeholder editable" onclick="openEditModal('${cardId}')">${emoji}<div class="placeholder-edit-hint">✏️</div></div>`;
+}
+
 function renderCardRow(card) {
+  const emoji = card.language === 'JPN' ? '🎌' : '🔥';
   const thumbHtml = card.imgUrl
-    ? `<img class="card-thumb" src="${card.imgUrl}" alt="${card.name}" loading="lazy" onclick="openImgModal('${card.id}')" onerror="this.parentElement.innerHTML='<div class=card-thumb-placeholder>🔥</div>'">`
-    : `<div class="card-thumb-placeholder">${card.language === 'JPN' ? '🎌' : '🔥'}</div>`;
+    ? `<img class="card-thumb" src="${card.imgUrl}" alt="${card.name}" loading="lazy" onclick="openImgModal('${card.id}')" onerror="imgLoadError(this,'${card.id}','${emoji}')">`
+    : `<div class="card-thumb-placeholder editable" onclick="openEditModal('${card.id}')">${emoji}<div class="placeholder-edit-hint">✏️</div></div>`;
 
   const { text: priceText, cls: priceCls } = formatPrice(card.id);
   const isCollected = collected.has(card.id);
@@ -1239,7 +1267,7 @@ function updateStats() {
   // Count unique card IDs (featuring shares IDs with main sections)
   const uniqueIds = new Set(CARDS.map(c => c.id));
   const total = uniqueIds.size;
-  const col = [...uniqueIds].filter(id => collected.has(id)).size;
+  const col = [...uniqueIds].filter(id => collected.has(id)).length;
   const remaining = total - col;
 
   let needValue = 0;
