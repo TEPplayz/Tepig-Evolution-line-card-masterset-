@@ -745,9 +745,11 @@
     <div id="s-status" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px"></div>
     <div class="form-actions">
       <button class="btn-save" onclick="forceFetchPrices()">🔄 Fetch Prices Now</button>
+      <button class="btn-save" onclick="forceAppUpdate()" style="background:#555">⬆️ Force App Update</button>
       <button class="btn-cancel" onclick="clearAllData()">🗑 Reset All Data</button>
     </div>
     <p style="font-size:0.75rem;color:var(--text-muted);margin-top:14px">Reset clears collected status, prices, and custom cards.</p>
+    <p id="app-version" style="font-size:0.7rem;color:var(--text-muted);margin-top:6px"></p>
   </div>
 </div>
 
@@ -1640,6 +1642,37 @@ init();
 
 
 <script>
+// ── Version check: auto-reload when app has been updated ──────────────────
+async function checkForAppUpdate() {
+  try {
+    const res = await fetch('./version.json?_=' + Date.now(), { cache: 'no-store' });
+    const { v } = await res.json();
+    const stored = localStorage.getItem('tepig-app-version');
+    // Show version in settings
+    const el = document.getElementById('app-version');
+    if (el) el.textContent = `App version: ${v}`;
+    if (stored && stored !== v) {
+      // New version available — reload with cache-buster param
+      showToast('⬆️ New version found! Updating...');
+      setTimeout(() => {
+        const base = location.href.split('?')[0];
+        location.replace(base + '?v=' + v);
+      }, 1200);
+    } else {
+      localStorage.setItem('tepig-app-version', v);
+    }
+  } catch(e) { /* offline — skip */ }
+}
+
+function forceAppUpdate() {
+  localStorage.removeItem('tepig-app-version');
+  showToast('🔄 Checking for updates...');
+  checkForAppUpdate();
+}
+
+// Run check on every load
+checkForAppUpdate();
+
 // Register service worker for auto-updates
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
