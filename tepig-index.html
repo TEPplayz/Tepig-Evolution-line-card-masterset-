@@ -870,11 +870,26 @@ const SECTIONS_META = [
 //  STATE
 // ════════════════════════════════════════
 let CARDS = [];           // merged base + custom
-let apiCache = {};        // id → api card object
 let priceData = {};       // id → {price, ts}
 let priceHistory = {};    // id → [{price, ts}]
 let collected = new Set();
 const USD_TO_GBP = 0.79;
+const EUR_TO_GBP = 0.84;
+
+// Map app card IDs → TCGDex card IDs (only where they differ)
+const TCGDEX_ID_MAP = {
+  'mcd11-3':   '2011bw-3',
+  'mcd12-4':   '2012bw-4',
+  'sv8pt5-11': 'sv10.5w-011',
+  'sv8pt5-96': 'sv10.5w-096',
+  'sv8pt5-97': 'sv10.5w-097',
+  'sv8pt5-98': 'sv10.5w-098',
+  'mep-29':    'me02.5-029',
+  'mep-30':    'me02.5-030',
+  'mep-31':    'me02.5-031',
+  'mep-273':   'me02.5-273',
+};
+function getTcgdexId(card) { return TCGDEX_ID_MAP[card.id] || card.id; }
 
 function loadState() {
   try {
@@ -930,7 +945,7 @@ function savePriceHistory() {
 // ════════════════════════════════════════
 function openSettings() {
   const el = document.getElementById('s-status');
-  const lastRaw = localStorage.getItem('tepig-api-v5');
+  const lastRaw = localStorage.getItem('tepig-tcgdex-v1');
   if (lastRaw) {
     try {
       const { ts } = JSON.parse(lastRaw);
@@ -966,151 +981,100 @@ function clearAllData() {
 // ════════════════════════════════════════
 //  TCG API PRICE FETCH (free, no token)
 // ════════════════════════════════════════
-function getBestPriceTier(prices, card) {
-  if (!prices) return null;
+// ════════════════════════════════════════
+//  PRICE FETCHING via TCGDex API (free, no key needed)
+// ════════════════════════════════════════
+function getTcgdexPrice(pricing, card) {
+  if (!pricing) return null;
   const v = (card.variant || '').toLowerCase();
   const r = (card.rarity || '').toLowerCase();
-  if (v.includes('reverse')) {
-    return prices.reverseHolofoil || prices.holofoil || prices.normal;
+
+  // Try TCGPlayer first (USD → GBP)
+  if (pricing.tcgplayer) {
+    const tcp = pricing.tcgplayer;
+    let tier;
+    if (v.includes('reverse'))                    tier = tcp['reverse-holofoil'];
+    else if (v.includes('holo') || r.includes('holo')) tier = tcp['holofoil'] || tcp['1stEditionHolofoil'] || tcp['normal'];
+    else                                          tier = tcp['normal'] || tcp['holofoil'] || tcp['1stEditionNormal'];
+    if (tier && tier.marketPrice != null) return tier.marketPrice * USD_TO_GBP;
   }
-  if (v.includes('holo') || r.includes('holo')) {
-    return prices.holofoil || prices['1stEditionHolofoil'] || prices.normal;
+
+  // Fall back to CardMarket (EUR → GBP)
+  if (pricing.cardmarket) {
+    const cm = pricing.cardmarket;
+    let price;
+    if (v.includes('holo') || r.includes('holo'))
+      price = cm['trend-holo'] ?? cm['avg-holo'] ?? cm.trend ?? cm.avg;
+    else
+      price = cm.trend ?? cm.avg;
+    if (price != null) return price * EUR_TO_GBP;
   }
-  if (r.includes('rare')) {
-    return prices.holofoil || prices.normal;
-  }
-  return prices.normal || prices.reverseHolofoil || prices.holofoil
-    || prices['1stEditionNormal'] || prices['1stEditionHolofoil'];
+  return null;
 }
 
 async function fetchTcgPrices(force = false) {
-  await loadApiData(force);
-  try {
-    const raw = localStorage.getItem('tepig-api-v6');
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
-    if (!parsed.data) return 0;
-    const count = processApiData(parsed.data);
-    renderAll();
-    updateLastUpdated();
-    return count;
-  } catch(e) {
-    console.warn('fetchTcgPrices error:', e);
-    return 0;
-  }
-}
-
-// ════════════════════════════════════════
-//  API + MATCHING (fallback for images only)
-// ════════════════════════════════════════
-async function loadApiData(force = false) {
-  const CACHE_KEY = 'tepig-api-v6';
+  const CACHE_KEY = 'tepig-tcgdex-v1';
   const CACHE_TIME = 24 * 60 * 60 * 1000;
 
+  // Use cache if fresh and not forced
   if (!force) {
     try {
       const raw = localStorage.getItem(CACHE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Date.now() - parsed.ts < CACHE_TIME) return; // still fresh, skip
+        const { ts, priceMap } = JSON.parse(raw);
+        if (Date.now() - ts < CACHE_TIME) {
+          let n = 0;
+          for (const [id, price] of Object.entries(priceMap)) {
+            storePricePoint(id, price); n++;
+          }
+          savePrices(); savePriceHistory(); renderAll(); updateLastUpdated();
+          return n;
+        }
       }
     } catch(e) {}
   }
 
-  try {
-    // Fetch each Pokémon separately to avoid complex query encoding issues
-    const names = ['Tepig', 'Pignite', 'Emboar'];
-    let data = [];
-    for (const name of names) {
-      const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('name:' + name)}&pageSize=250`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('API error ' + res.status + ' for ' + name);
-      const json = await res.json();
-      data = data.concat(json.data || []);
-    }
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
-    updateLastUpdated();
-  } catch(e) {
-    console.warn('TCG API fetch failed:', e);
-  }
-}
-
-function normStr(s) {
-  return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-function setNameSimilarity(a, b) {
-  const na = normStr(a), nb = normStr(b);
-  if (na === nb) return 1;
-  if (na.includes(nb) || nb.includes(na)) return 0.8;
-  let common = 0;
-  const shorter = na.length < nb.length ? na : nb;
-  const longer = na.length < nb.length ? nb : na;
-  for (let i = 0; i < shorter.length - 2; i++) {
-    if (longer.includes(shorter.slice(i, i+3))) common++;
-  }
-  return shorter.length > 2 ? common / (shorter.length - 2) : 0;
-}
-
-function processApiData(apiCards) {
-  // Build a lookup map
-  let priceCount = 0;
-  const byNameSet = {};
-  for (const ac of apiCards) {
-    const key = normStr(ac.name) + '|' + normStr(ac.set && ac.set.name);
-    if (!byNameSet[key]) byNameSet[key] = [];
-    byNameSet[key].push(ac);
-  }
-
+  // Build deduplicated fetch list (English cards only, by TCGDex ID)
+  const seen = new Set();
+  const toFetch = [];
   for (const card of CARDS) {
-    if (card.language === 'JPN') continue; // skip Japanese, no API match expected
-    if (apiCache[card.id]) continue; // already matched
+    if (card.language === 'JPN') continue;
+    const tcgId = getTcgdexId(card);
+    if (tcgId.startsWith('jp-')) continue;
+    if (!seen.has(tcgId)) { seen.add(tcgId); toFetch.push(tcgId); }
+  }
 
-    let bestMatch = null;
-    let bestScore = 0;
+  // Fetch all cards in parallel with 10s timeout each
+  const results = await Promise.allSettled(toFetch.map(async tcgId => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10000);
+    try {
+      const res = await fetch(`https://api.tcgdex.net/v2/en/cards/${tcgId}`, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return { tcgId, pricing: data.pricing };
+    } catch(e) { clearTimeout(timer); return null; }
+  }));
 
-    for (const ac of apiCards) {
-      if (normStr(ac.name) !== normStr(card.name)) continue;
-
-      const setSim = setNameSimilarity(ac.set ? ac.set.name : '', card.set);
-
-      // Number match
-      const acNum = (ac.number || '').toLowerCase().replace(/^0+/, '');
-      const cardNum = (card.number || '').toLowerCase().replace(/^0+/, '');
-      const numMatch = cardNum && acNum && (acNum === cardNum);
-
-      let score = setSim;
-      if (numMatch) score += 0.5;
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestMatch = ac;
-      }
-    }
-
-    if (bestMatch && bestScore >= 0.5) {
-      apiCache[card.id] = bestMatch;
-
-      // For Pignite/Emboar BW7 with empty number — fill it in from API
-      if (!card.number && bestMatch.number) {
-        card.number = bestMatch.number;
-      }
-
-      // Update price using best tier for this card's variant/rarity
-      const prices = bestMatch.tcgplayer && bestMatch.tcgplayer.prices;
-      if (prices) {
-        const tier = getBestPriceTier(prices, card);
-        if (tier && tier.market != null) {
-          storePricePoint(card.id, tier.market * USD_TO_GBP);
-          priceCount++;
-        }
+  // Apply prices to all matching cards
+  const priceMap = {};
+  let count = 0;
+  for (const r of results) {
+    if (r.status !== 'fulfilled' || !r.value) continue;
+    const { tcgId, pricing } = r.value;
+    for (const card of CARDS) {
+      if (getTcgdexId(card) === tcgId) {
+        const price = getTcgdexPrice(pricing, card);
+        if (price != null) { priceMap[card.id] = price; storePricePoint(card.id, price); count++; }
       }
     }
   }
 
-  savePrices();
-  savePriceHistory();
-  return priceCount;
+  savePrices(); savePriceHistory();
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), priceMap })); } catch(e) {}
+  renderAll(); updateLastUpdated();
+  return count;
 }
 
 function storePricePoint(cardId, price) {
