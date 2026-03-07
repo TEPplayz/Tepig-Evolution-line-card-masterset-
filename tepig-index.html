@@ -658,47 +658,130 @@
 // ════════════════════════════════════════
 const BASE_CARDS = [
   // ── TEPIG ──
-  { id:"bw1-15",    name:"Tepig",  set:"Black & White",          setCode:"bw1",    number:"15",     rarity:"Common",   variant:"", language:"EN", section:"tepig",   pcSlug:"tepig black white 15" },
-  { id:"bw1-16",    name:"Tepig",  set:"Black & White",          setCode:"bw1",    number:"16",     rarity:"Common",   variant:"", language:"EN", section:"tepig",   pcSlug:"tepig black white 16" },
-  { id:"bwp-bw02",  name:"Tepig",  set:"BW Black Star Promos",   setCode:"bwp",    number:"BW02",   rarity:"Promo",    variant:"", language:"EN", section:"tepig",   pcSlug:"tepig bw promo bw02" },
-  { id:"bwp-bw07",  name:"Tepig",  set:"BW Black Star Promos",   setCode:"bwp",    number:"BW07",   rarity:"Promo",    variant:"Cosmos Holo", language:"EN", section:"tepig", pcSlug:"tepig bw promo bw07" },
-  { id:"bw7-24",    name:"Tepig",  set:"Boundaries Crossed",     setCode:"bw7",    number:"24",     rarity:"Common",   variant:"", language:"EN", section:"tepig",   pcSlug:"tepig boundaries crossed" },
-  { id:"bw11-25",   name:"Tepig",  set:"Legendary Treasures",    setCode:"bw11",   number:"25",     rarity:"Common",   variant:"Narrative Illustration", language:"EN", section:"tepig", pcSlug:"tepig legendary treasures" },
-  { id:"mcd11-1",   name:"Tepig",  set:"McDonald's Collection",  setCode:"mcd11",  number:"1",      rarity:"Promo",    variant:"", language:"EN", section:"tepig",   pcSlug:"tepig mcdonalds 2011" },
-  { id:"sm12-31",   name:"Tepig",  set:"Cosmic Eclipse",         setCode:"sm12",   number:"31",     rarity:"Common",   variant:"", language:"EN", section:"tepig",   pcSlug:"tepig cosmic eclipse" },
-  { id:"swsh5-23",  name:"Tepig",  set:"Battle Styles",          setCode:"swsh5",  number:"23",     rarity:"Common",   variant:"", language:"EN", section:"tepig",   pcSlug:"tepig battle styles" },
-  { id:"swshp-swsh172", name:"Tepig", set:"SWSH Black Star Promos", setCode:"swshp", number:"SWSH172", rarity:"Promo", variant:"", language:"EN", section:"tepig", pcSlug:"tepig swsh promo swsh172" },
-  { id:"mep-29",    name:"Tepig",  set:"Ascended Heroes",        setCode:"mep",    number:"29",     rarity:"Common",   variant:"", language:"EN", section:"tepig",   pcSlug:"tepig ascended heroes" },
-  { id:"sv8pt5-11", name:"Tepig",  set:"Scarlet & Violet: Prismatic Evolutions", setCode:"sv8pt5", number:"11", rarity:"Common", variant:"", language:"EN", section:"tepig", pcSlug:"tepig prismatic evolutions" },
-  { id:"sv8pt5-96", name:"Tepig",  set:"Scarlet & Violet: Prismatic Evolutions", setCode:"sv8pt5", number:"96", rarity:"Illustration Rare", variant:"Illustration Rare", language:"EN", section:"tepig", pcSlug:"tepig prismatic evolutions illustration rare" },
+  { id:"bw1-15",        name:"Tepig",  set:"Black & White",            setCode:"bw1",    number:"15",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/bw1/15.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-black-&-white/tepig-15" },
+  { id:"bw1-16",        name:"Tepig",  set:"Black & White",            setCode:"bw1",    number:"16",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/bw1/16.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-black-&-white/tepig-16" },
+  { id:"bwp-BW02",      name:"Tepig",  set:"BW Black Star Promos",     setCode:"bwp",    number:"BW02",    rarity:"Promo",     variant:"",               language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/bwp/BW02.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-promo/tepig-bw02" },
+  { id:"bwp-BW07",      name:"Tepig",  set:"BW Black Star Promos",     setCode:"bwp",    number:"BW07",    rarity:"Promo",     variant:"Cosmos Holo",    language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/bwp/BW07.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-promo/tepig-bw07" },
+  { id:"bw7-24",        name:"Tepig",  set:"Boundaries Crossed",       setCode:"bw7",    number:"24",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/bw7/24.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-boundaries-crossed/tepig-24" },
+  { id:"bw11-25",       name:"Tepig",  set:"Legendary Treasures",      setCode:"bw11",   number:"25",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/bw11/25.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-legendary-treasures/tepig-25" },
+  { id:"mcd11-3",       name:"Tepig",  set:"McDonald's 2011",          setCode:"mcd11",  number:"3",       rarity:"Promo",     variant:"",               language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/mcd11/3.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-mcdonalds-2011/tepig-3" },
+  { id:"sm12-31",       name:"Tepig",  set:"Cosmic Eclipse",           setCode:"sm12",   number:"31",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/sm12/31.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-cosmic-eclipse/tepig-31" },
+  { id:"swsh5-23",      name:"Tepig",  set:"Battle Styles",            setCode:"swsh5",  number:"23",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/swsh5/23.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-battle-styles/tepig-23" },
+  { id:"swshp-SWSH172", name:"Tepig",  set:"SWSH Black Star Promos",   setCode:"swshp",  number:"SWSH172", rarity:"Promo",     variant:"",               language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/swshp/SWSH172.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-promo/tepig-swsh172" },
+  { id:"sv8pt5-11",     name:"Tepig",  set:"Prismatic Evolutions",     setCode:"sv8pt5", number:"11",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/sv8pt5/11.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/tepig-11" },
+  { id:"sv8pt5-96",     name:"Tepig",  set:"Prismatic Evolutions",     setCode:"sv8pt5", number:"96",      rarity:"Illustration Rare", variant:"Illustration Rare", language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/sv8pt5/96.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/tepig-96" },
+  { id:"mep-29",        name:"Tepig",  set:"Ascended Heroes",          setCode:"mep",    number:"29",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
+    imgUrl:null,
+    pcUrl:"https://www.pricecharting.com/game/pokemon-ascended-heroes/tepig-29" },
 
   // ── PIGNITE ──
-  { id:"bw1-17",    name:"Pignite", set:"Black & White",          setCode:"bw1",    number:"17",     rarity:"Uncommon", variant:"", language:"EN", section:"pignite", pcSlug:"pignite black white" },
-  { id:"bw7-pig",   name:"Pignite", set:"Boundaries Crossed",     setCode:"bw7",    number:"",       rarity:"Uncommon", variant:"", language:"EN", section:"pignite", pcSlug:"pignite boundaries crossed" },
-  { id:"bw11-26",   name:"Pignite", set:"Legendary Treasures",    setCode:"bw11",   number:"26",     rarity:"Uncommon", variant:"Narrative Illustration", language:"EN", section:"pignite", pcSlug:"pignite legendary treasures" },
+  { id:"bw1-17",        name:"Pignite", set:"Black & White",           setCode:"bw1",    number:"17",      rarity:"Uncommon",  variant:"",               language:"EN", section:"pignite",
+    imgUrl:"https://images.pokemontcg.io/bw1/17.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-black-&-white/pignite-17" },
+  { id:"bw7-25",        name:"Pignite", set:"Boundaries Crossed",      setCode:"bw7",    number:"25",      rarity:"Uncommon",  variant:"",               language:"EN", section:"pignite",
+    imgUrl:"https://images.pokemontcg.io/bw7/25.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-boundaries-crossed/pignite-25" },
+  { id:"mcd12-4",       name:"Pignite", set:"McDonald's 2012",         setCode:"mcd12",  number:"4",       rarity:"Promo",     variant:"",               language:"EN", section:"pignite",
+    imgUrl:"https://images.pokemontcg.io/mcd12/4.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-mcdonalds-2012/pignite-4" },
+  { id:"bw11-26",       name:"Pignite", set:"Legendary Treasures",     setCode:"bw11",   number:"26",      rarity:"Uncommon",  variant:"",               language:"EN", section:"pignite",
+    imgUrl:"https://images.pokemontcg.io/bw11/26.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-legendary-treasures/pignite-26" },
+  { id:"sm12-32",       name:"Pignite", set:"Cosmic Eclipse",          setCode:"sm12",   number:"32",      rarity:"Common",    variant:"",               language:"EN", section:"pignite",
+    imgUrl:"https://images.pokemontcg.io/sm12/32.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-cosmic-eclipse/pignite-32" },
+  { id:"swsh5-24",      name:"Pignite", set:"Battle Styles",           setCode:"swsh5",  number:"24",      rarity:"Uncommon",  variant:"",               language:"EN", section:"pignite",
+    imgUrl:"https://images.pokemontcg.io/swsh5/24.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-battle-styles/pignite-24" },
+  { id:"sv8pt5-97",     name:"Pignite", set:"Prismatic Evolutions",    setCode:"sv8pt5", number:"97",      rarity:"Uncommon",  variant:"",               language:"EN", section:"pignite",
+    imgUrl:"https://images.pokemontcg.io/sv8pt5/97.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/pignite-97" },
+  { id:"mep-30",        name:"Pignite", set:"Ascended Heroes",         setCode:"mep",    number:"30",      rarity:"Uncommon",  variant:"",               language:"EN", section:"pignite",
+    imgUrl:null,
+    pcUrl:"https://www.pricecharting.com/game/pokemon-ascended-heroes/pignite-30" },
 
   // ── EMBOAR ──
-  { id:"bw1-19",    name:"Emboar",  set:"Black & White",          setCode:"bw1",    number:"19",     rarity:"Rare Holo", variant:"Ability", language:"EN", section:"emboar", pcSlug:"emboar black white 19" },
-  { id:"bw1-20",    name:"Emboar",  set:"Black & White",          setCode:"bw1",    number:"20",     rarity:"Rare Holo", variant:"No Ability", language:"EN", section:"emboar", pcSlug:"emboar black white 20" },
-  { id:"bw1-98",    name:"Emboar",  set:"Black & White",          setCode:"bw1",    number:"98",     rarity:"Ultra Rare", variant:"Full Art", language:"EN", section:"emboar", pcSlug:"emboar black white full art" },
-  { id:"bw3-19",    name:"Emboar",  set:"Noble Victories",        setCode:"bw3",    number:"19",     rarity:"Rare Holo", variant:"", language:"EN", section:"emboar", pcSlug:"emboar noble victories" },
-  { id:"bw7-emb",   name:"Emboar",  set:"Boundaries Crossed",     setCode:"bw7",    number:"",       rarity:"Rare Holo", variant:"", language:"EN", section:"emboar", pcSlug:"emboar boundaries crossed" },
-  { id:"bw11-27",   name:"Emboar",  set:"Legendary Treasures",    setCode:"bw11",   number:"27",     rarity:"Rare Holo", variant:"Narrative Illustration", language:"EN", section:"emboar", pcSlug:"emboar legendary treasures" },
+  { id:"bw1-19",        name:"Emboar",  set:"Black & White",           setCode:"bw1",    number:"19",      rarity:"Rare Holo", variant:"Ability",        language:"EN", section:"emboar",
+    imgUrl:"https://images.pokemontcg.io/bw1/19.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-black-&-white/emboar-19" },
+  { id:"bw1-20",        name:"Emboar",  set:"Black & White",           setCode:"bw1",    number:"20",      rarity:"Rare Holo", variant:"No Ability",     language:"EN", section:"emboar",
+    imgUrl:"https://images.pokemontcg.io/bw1/20.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-black-&-white/emboar-20" },
+  { id:"bwp-BW21",      name:"Emboar",  set:"BW Black Star Promos",    setCode:"bwp",    number:"BW21",    rarity:"Promo",     variant:"",               language:"EN", section:"emboar",
+    imgUrl:"https://images.pokemontcg.io/bwp/BW21.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-promo/emboar-bw21" },
+  { id:"bw7-26",        name:"Emboar",  set:"Boundaries Crossed",      setCode:"bw7",    number:"26",      rarity:"Rare Holo", variant:"",               language:"EN", section:"emboar",
+    imgUrl:"https://images.pokemontcg.io/bw7/26.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-boundaries-crossed/emboar-26" },
+  { id:"bw11-27",       name:"Emboar",  set:"Legendary Treasures",     setCode:"bw11",   number:"27",      rarity:"Rare Holo", variant:"",               language:"EN", section:"emboar",
+    imgUrl:"https://images.pokemontcg.io/bw11/27.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-legendary-treasures/emboar-27" },
+  { id:"bw4-100",       name:"Emboar",  set:"Next Destinies",          setCode:"bw4",    number:"100",     rarity:"Ultra Rare",variant:"Full Art EX",    language:"EN", section:"emboar",
+    imgUrl:"https://images.pokemontcg.io/bw4/100.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-next-destinies/emboar-100" },
+  { id:"xy9-14",        name:"Emboar",  set:"BREAKpoint",              setCode:"xy9",    number:"14",      rarity:"Ultra Rare",variant:"EX",             language:"EN", section:"emboar",
+    imgUrl:"https://images.pokemontcg.io/xy9/14.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-breakpoint/emboar-ex-14" },
+  { id:"sm12-33",       name:"Emboar",  set:"Cosmic Eclipse",          setCode:"sm12",   number:"33",      rarity:"Common",    variant:"",               language:"EN", section:"emboar",
+    imgUrl:"https://images.pokemontcg.io/sm12/33.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-cosmic-eclipse/emboar-33" },
+  { id:"swsh5-25",      name:"Emboar",  set:"Battle Styles",           setCode:"swsh5",  number:"25",      rarity:"Rare",      variant:"",               language:"EN", section:"emboar",
+    imgUrl:"https://images.pokemontcg.io/swsh5/25.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-battle-styles/emboar-25" },
+  { id:"sv8pt5-98",     name:"Emboar",  set:"Prismatic Evolutions",    setCode:"sv8pt5", number:"98",      rarity:"Rare",      variant:"",               language:"EN", section:"emboar",
+    imgUrl:"https://images.pokemontcg.io/sv8pt5/98.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/emboar-98" },
+  { id:"mep-31",        name:"Mega Emboar ex", set:"Ascended Heroes",  setCode:"mep",    number:"31",      rarity:"Ultra Rare",variant:"",               language:"EN", section:"emboar",
+    imgUrl:null,
+    pcUrl:"https://www.pricecharting.com/game/pokemon-ascended-heroes/mega-emboar-ex-31" },
+  { id:"mep-273",       name:"Mega Emboar ex", set:"Ascended Heroes",  setCode:"mep",    number:"273",     rarity:"Special Illustration Rare", variant:"Secret Rare", language:"EN", section:"emboar",
+    imgUrl:null,
+    pcUrl:"https://www.pricecharting.com/game/pokemon-ascended-heroes/mega-emboar-ex-273" },
 
   // ── JAPANESE EXCLUSIVES ──
-  { id:"jp-bs-6",   name:"Tepig",   set:"Beginning Set (JPN)",    setCode:"jp-bs",  number:"6/37",   rarity:"Common",   variant:"Japanese", language:"JPN", section:"japanese", pcSlug:"tepig beginning set japanese" },
-  { id:"jp-bs-6g",  name:"Tepig",   set:"Beginning Set for Girls (JPN)", setCode:"jp-bsg", number:"6/37", rarity:"Common Holo", variant:"Girls Set", language:"JPN", section:"japanese", pcSlug:"tepig beginning set girls japanese" },
-  { id:"jp-bs-7",   name:"Pignite", set:"Beginning Set (JPN)",    setCode:"jp-bs",  number:"7/37",   rarity:"Common",   variant:"Japanese", language:"JPN", section:"japanese", pcSlug:"pignite beginning set japanese" },
-  { id:"jp-bs-8",   name:"Emboar",  set:"Beginning Set (JPN)",    setCode:"jp-bs",  number:"8/37",   rarity:"Common",   variant:"Japanese", language:"JPN", section:"japanese", pcSlug:"emboar beginning set japanese" },
-  { id:"jp-bsp-6",  name:"Tepig",   set:"Beginning Set + (JPN)",  setCode:"jp-bsp", number:"6/34",   rarity:"Common",   variant:"Japanese", language:"JPN", section:"japanese", pcSlug:"tepig beginning set plus japanese" },
-  { id:"jp-bsp-7",  name:"Pignite", set:"Beginning Set + (JPN)",  setCode:"jp-bsp", number:"7/34",   rarity:"Common",   variant:"Japanese", language:"JPN", section:"japanese", pcSlug:"pignite beginning set plus japanese" },
-  { id:"jp-bsp-8",  name:"Emboar",  set:"Beginning Set + (JPN)",  setCode:"jp-bsp", number:"8/34",   rarity:"Common",   variant:"Japanese", language:"JPN", section:"japanese", pcSlug:"emboar beginning set plus japanese" },
-  { id:"jp-bwp-76", name:"Tepig",   set:"BW-P Promo (JPN)",       setCode:"jp-bwp", number:"076",    rarity:"Promo",    variant:"Japanese Promo", language:"JPN", section:"japanese", pcSlug:"tepig bwp promo 076 japanese" },
+  { id:"jp-bs-tepig",   name:"Tepig",   set:"Beginning Set (JPN)",     setCode:"jp-bs",  number:"6/37",    rarity:"Common",    variant:"Japanese",       language:"JPN", section:"japanese",
+    imgUrl:null, pcUrl:"https://www.pricecharting.com/game/pokemon-japanese-beginning-set-hs/tepig-6" },
+  { id:"jp-bs-pignite", name:"Pignite", set:"Beginning Set (JPN)",     setCode:"jp-bs",  number:"7/37",    rarity:"Common",    variant:"Japanese",       language:"JPN", section:"japanese",
+    imgUrl:null, pcUrl:"https://www.pricecharting.com/game/pokemon-japanese-beginning-set-hs/pignite-7" },
+  { id:"jp-bs-emboar",  name:"Emboar",  set:"Beginning Set (JPN)",     setCode:"jp-bs",  number:"8/37",    rarity:"Common",    variant:"Japanese",       language:"JPN", section:"japanese",
+    imgUrl:null, pcUrl:"https://www.pricecharting.com/game/pokemon-japanese-beginning-set-hs/emboar-8" },
+  { id:"jp-bwp-076",    name:"Tepig",   set:"BW-P Promo (JPN)",        setCode:"jp-bwp", number:"076",     rarity:"Promo",     variant:"Japanese Promo", language:"JPN", section:"japanese",
+    imgUrl:null, pcUrl:"https://www.pricecharting.com/game/pokemon-japanese-promo/tepig-hokkaido-battle-79bw-p" },
 
-  // ── FEATURING (narrative illustration cards — same cards as in main sections) ──
-  { id:"bw11-25",   name:"Tepig",   set:"Legendary Treasures", setCode:"bw11", number:"25", rarity:"Common", variant:"Family Story — Part 1", language:"EN", section:"featuring", pcSlug:"tepig legendary treasures" },
-  { id:"bw11-26",   name:"Pignite", set:"Legendary Treasures", setCode:"bw11", number:"26", rarity:"Uncommon", variant:"Family Story — Part 2", language:"EN", section:"featuring", pcSlug:"pignite legendary treasures" },
-  { id:"bw11-27",   name:"Emboar",  set:"Legendary Treasures", setCode:"bw11", number:"27", rarity:"Rare Holo", variant:"Family Story — Part 3", language:"EN", section:"featuring", pcSlug:"emboar legendary treasures" },
+  // ── FEATURING (narrative illustration trio — shared IDs with main sections) ──
+  { id:"bw11-25",       name:"Tepig",   set:"Legendary Treasures",     setCode:"bw11",   number:"25",      rarity:"Common",    variant:"Family Story — Part 1", language:"EN", section:"featuring",
+    imgUrl:"https://images.pokemontcg.io/bw11/25.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-legendary-treasures/tepig-25" },
+  { id:"bw11-26",       name:"Pignite", set:"Legendary Treasures",     setCode:"bw11",   number:"26",      rarity:"Uncommon",  variant:"Family Story — Part 2", language:"EN", section:"featuring",
+    imgUrl:"https://images.pokemontcg.io/bw11/26.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-legendary-treasures/pignite-26" },
+  { id:"bw11-27",       name:"Emboar",  set:"Legendary Treasures",     setCode:"bw11",   number:"27",      rarity:"Rare Holo", variant:"Family Story — Part 3", language:"EN", section:"featuring",
+    imgUrl:"https://images.pokemontcg.io/bw11/27.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-legendary-treasures/emboar-27" },
 ];
 
 const SECTIONS_META = [
@@ -948,9 +1031,8 @@ function getBadges(card) {
 }
 
 function renderCardRow(card) {
-  const ac = apiCache[card.id];
-  const thumbHtml = ac && ac.images && ac.images.small
-    ? `<img class="card-thumb" src="${ac.images.small}" alt="${card.name}" loading="lazy" onclick="openImgModal('${card.id}')" onerror="this.parentElement.innerHTML='<div class=card-thumb-placeholder>🔥</div>'">`
+  const thumbHtml = card.imgUrl
+    ? `<img class="card-thumb" src="${card.imgUrl}" alt="${card.name}" loading="lazy" onclick="openImgModal('${card.id}')" onerror="this.parentElement.innerHTML='<div class=card-thumb-placeholder>🔥</div>'">`
     : `<div class="card-thumb-placeholder">${card.language === 'JPN' ? '🎌' : '🔥'}</div>`;
 
   const { text: priceText, cls: priceCls } = formatPrice(card.id);
@@ -963,7 +1045,7 @@ function renderCardRow(card) {
     <div class="card-thumb-wrap">${thumbHtml}</div>
     <div class="card-info">
       <div class="card-name-row">
-        <a class="card-name" href="${pcSearchUrl(card)}" target="_blank" rel="noopener" title="${card.name} — ${card.set}">${card.name}</a>
+        <a class="card-name" href="${card.pcUrl || '#'}" target="_blank" rel="noopener" title="${card.name} — ${card.set}">${card.name}</a>
         ${getBadges(card)}
       </div>
       <span class="card-set">${card.set}</span>
@@ -1081,10 +1163,11 @@ function toggleCollected(cardId) {
 //  IMAGE MODAL
 // ════════════════════════════════════════
 function openImgModal(cardId) {
-  const ac = apiCache[cardId];
-  if (!ac || !ac.images) return;
+  const card = CARDS.find(c => c.id === cardId);
+  if (!card || !card.imgUrl) return;
   const img = document.getElementById('img-modal-img');
-  img.src = ac.images.large || ac.images.small;
+  // Use hires version if available from pokemontcg CDN (e.g. bw1/15.png → bw1/15_hires.png)
+  img.src = card.imgUrl.replace(/\.png$/, '_hires.png');
   document.getElementById('img-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 
@@ -1142,7 +1225,7 @@ function openPriceModal(cardId) {
   }
 
   // PriceCharting link
-  document.getElementById('pm-pc-link').href = pcSearchUrl(card);
+  document.getElementById('pm-pc-link').href = card.pcUrl || `https://www.pricecharting.com/search-products?type=prices&q=${encodeURIComponent(card.name + ' ' + card.set)}`;
 
   document.getElementById('price-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
