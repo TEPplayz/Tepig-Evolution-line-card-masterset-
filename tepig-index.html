@@ -898,7 +898,7 @@ const TCGDEX_ID_MAP = {
   'mep-31':    'me02.5-031',
   'mep-273':   'me02.5-273',
 };
-function getTcgdexId(card) { return TCGDEX_ID_MAP[card.id] || card.id; }
+function getTcgdexId(card) { return TCGDEX_ID_MAP[card.id] || card.tcgdexId || card.id; }
 
 function loadState() {
   try {
@@ -1050,6 +1050,7 @@ async function fetchTcgPrices(force = false) {
     if (card.language === 'JPN') continue;
     const tcgId = getTcgdexId(card);
     if (tcgId.startsWith('jp-')) continue;
+    if (tcgId.startsWith('custom-')) continue; // custom card with no TCGDex ID
     if (!seen.has(tcgId)) { seen.add(tcgId); toFetch.push(tcgId); }
   }
 
@@ -1418,8 +1419,10 @@ function saveCustomCard() {
   const priceRaw = parseFloat(document.getElementById('f-price').value);
 
   const id = `custom-${Date.now()}`;
+  // Auto-derive TCGDex ID from setCode + number so live prices fetch automatically
+  const tcgdexId = (setCode && number) ? `${setCode.toLowerCase()}-${number.toLowerCase()}` : null;
   const card = { id, name, set, setCode, number, rarity, variant, language, section, custom: true,
-    imgUrl, pcUrl };
+    imgUrl, pcUrl, tcgdexId };
 
   // Save to localStorage
   let customs = [];
