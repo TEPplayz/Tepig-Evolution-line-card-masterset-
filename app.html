@@ -655,7 +655,7 @@
     </div>
     <div class="form-row">
       <label>Image URL</label>
-      <input id="edit-imgurl" type="url" placeholder="https://…" autocorrect="off" autocapitalize="off"/>
+      <input id="edit-imgurl" type="text" placeholder="https://…" autocorrect="off" autocapitalize="off"/>
     </div>
     <div class="form-row">
       <label>PriceCharting URL</label>
@@ -735,7 +735,7 @@
     </div>
     <div class="form-row">
       <label>Card Image URL</label>
-      <input id="f-img" type="url" placeholder="https://… (paste image link)"/>
+      <input id="f-img" type="text" placeholder="https://… (paste image link)"/>
     </div>
     <div class="form-row">
       <label>Manual Price (£)</label>
@@ -812,18 +812,18 @@ const BASE_CARDS = [
   { id:"swshp-SWSH172", name:"Tepig",  set:"SWSH Black Star Promos",   setCode:"swshp",  number:"SWSH172", rarity:"Promo",     variant:"",               language:"EN", section:"tepig",
     imgUrl:"https://images.pokemontcg.io/swshp/SWSH172.png",
     pcUrl:"https://www.pricecharting.com/game/pokemon-promo/tepig-swsh172" },
-  { id:"sv8pt5-11",     name:"Tepig",  set:"Prismatic Evolutions",     setCode:"sv8pt5", number:"11",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
-    imgUrl:"https://images.pokemontcg.io/sv8pt5/11.png",
+  { id:"sv10.5w-011",   name:"Tepig",  set:"White Flare",              setCode:"sv10.5w", number:"011",     rarity:"Common",    variant:"",               language:"EN", section:"tepig",
+    imgUrl:"https://assets.tcgdex.net/en/sv/sv10.5w/011/high.webp",
     pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/tepig-11" },
-  { id:"sv8pt5-12",     name:"Pignite", set:"White Flare",           setCode:"sv8pt5", number:"12",      rarity:"Common",    variant:"",               language:"EN", section:"pignite",
-    imgUrl:"https://images.pokemontcg.io/sv8pt5/12.png",
+  { id:"sv10.5w-012",   name:"Pignite", set:"White Flare",              setCode:"sv10.5w", number:"012",     rarity:"Common",    variant:"",               language:"EN", section:"pignite",
+    imgUrl:"https://assets.tcgdex.net/en/sv/sv10.5w/012/high.webp",
     pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/pignite-12" },
-  { id:"sv8pt5-13",     name:"Emboar",  set:"White Flare",           setCode:"sv8pt5", number:"13",      rarity:"Rare",      variant:"",               language:"EN", section:"emboar",
-    imgUrl:"https://images.pokemontcg.io/sv8pt5/13.png",
+  { id:"sv10.5w-013",   name:"Emboar",  set:"White Flare",              setCode:"sv10.5w", number:"013",     rarity:"Rare",      variant:"",               language:"EN", section:"emboar",
+    imgUrl:"https://assets.tcgdex.net/en/sv/sv10.5w/013/high.webp",
     pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/emboar-13" },
 
-  { id:"sv8pt5-96",     name:"Tepig",  set:"Prismatic Evolutions",     setCode:"sv8pt5", number:"96",      rarity:"Illustration Rare", variant:"Illustration Rare", language:"EN", section:"tepig",
-    imgUrl:"https://images.pokemontcg.io/sv8pt5/96.png",
+  { id:"sv10.5w-096",   name:"Tepig",  set:"White Flare",              setCode:"sv10.5w", number:"096",     rarity:"Illustration Rare", variant:"Illustration Rare", language:"EN", section:"tepig",
+    imgUrl:"https://assets.tcgdex.net/en/sv/sv10.5w/096/high.webp",
     pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/tepig-96" },
   { id:"mep-29",        name:"Tepig",  set:"Ascended Heroes",          setCode:"mep",    number:"29",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
     imgUrl:null,
@@ -848,8 +848,8 @@ const BASE_CARDS = [
   { id:"swsh5-24",      name:"Pignite", set:"Battle Styles",           setCode:"swsh5",  number:"24",      rarity:"Uncommon",  variant:"",               language:"EN", section:"pignite",
     imgUrl:"https://images.pokemontcg.io/swsh5/24.png",
     pcUrl:"https://www.pricecharting.com/game/pokemon-battle-styles/pignite-24" },
-  { id:"sv8pt5-97",     name:"Pignite", set:"Prismatic Evolutions",    setCode:"sv8pt5", number:"97",      rarity:"Uncommon",  variant:"",               language:"EN", section:"pignite",
-    imgUrl:"https://images.pokemontcg.io/sv8pt5/97.png",
+  { id:"sv10.5w-097",   name:"Pignite", set:"White Flare",              setCode:"sv10.5w", number:"097",     rarity:"Illustration Rare", variant:"Illustration Rare", language:"EN", section:"pignite",
+    imgUrl:"https://assets.tcgdex.net/en/sv/sv10.5w/097/high.webp",
     pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/pignite-97" },
   { id:"mep-30",        name:"Pignite", set:"Ascended Heroes",         setCode:"mep",    number:"30",      rarity:"Uncommon",  variant:"",               language:"EN", section:"pignite",
     imgUrl:null,
@@ -883,8 +883,8 @@ const BASE_CARDS = [
   { id:"swsh5-25",      name:"Emboar",  set:"Battle Styles",           setCode:"swsh5",  number:"25",      rarity:"Rare",      variant:"",               language:"EN", section:"emboar",
     imgUrl:"https://images.pokemontcg.io/swsh5/25.png",
     pcUrl:"https://www.pricecharting.com/game/pokemon-battle-styles/emboar-25" },
-  { id:"sv8pt5-98",     name:"Emboar",  set:"White Flare",             setCode:"sv8pt5", number:"98",      rarity:"Rare",      variant:"",               language:"EN", section:"emboar",
-    imgUrl:"https://images.pokemontcg.io/sv8pt5/98.png",
+  { id:"sv10.5w-098",   name:"Emboar",  set:"White Flare",              setCode:"sv10.5w", number:"098",     rarity:"Illustration Rare", variant:"Illustration Rare", language:"EN", section:"emboar",
+    imgUrl:"https://assets.tcgdex.net/en/sv/sv10.5w/098/high.webp",
     pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/emboar-98" },
   { id:"mep-31",        name:"Mega Emboar ex", set:"Ascended Heroes",  setCode:"mep",    number:"31",      rarity:"Ultra Rare",variant:"",               language:"EN", section:"emboar",
     imgUrl:null,
@@ -948,16 +948,12 @@ const EUR_TO_GBP = 0.84;
 const TCGDEX_ID_MAP = {
   'mcd11-3':   '2011bw-3',
   'mcd12-4':   '2012bw-4',
-  'sv8pt5-11': 'sv10.5w-011',
-  'sv8pt5-96': 'sv10.5w-096',
-  'sv8pt5-97': 'sv10.5w-097',
-  'sv8pt5-98': 'sv10.5w-098',
+
   'mep-29':    'me02.5-029',
   'mep-30':    'me02.5-030',
   'mep-31':    'me02.5-031',
   'mep-273':   'me02.5-273',
-  'sv8pt5-12': 'sv10.5w-012',
-  'sv8pt5-13': 'sv10.5w-013',
+
 };
 function getTcgdexId(card) { return TCGDEX_ID_MAP[card.id] || card.tcgdexId || card.id; }
 
@@ -1697,12 +1693,13 @@ async function checkForAppUpdate() {
     const el = document.getElementById('app-version');
     if (el) el.textContent = `App version: ${v}`;
     if (stored && stored !== v) {
-      // New version available — reload with cache-buster param
+      // Store new version FIRST so reload doesn't trigger loop
+      localStorage.setItem('tepig-app-version', v);
       showToast('⬆️ New version found! Updating...');
       setTimeout(() => {
         const base = location.href.split('?')[0];
         location.replace(base + '?v=' + v);
-      }, 1200);
+      }, 1500);
     } else {
       localStorage.setItem('tepig-app-version', v);
     }
@@ -1735,8 +1732,11 @@ if ('serviceWorker' in navigator) {
         });
       });
     });
-    // If controller changes (new SW took over), reload
+    // If controller changes (new SW took over), reload once
+    let _swReloading = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (_swReloading) return;
+      _swReloading = true;
       window.location.reload();
     });
   });
