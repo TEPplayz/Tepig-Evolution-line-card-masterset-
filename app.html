@@ -688,12 +688,18 @@
     <button class="modal-close" onclick="closeAddModal()">✕</button>
     <h2>➕ Add Custom Card</h2>
     <div class="form-row">
-      <label>Pokémon Name</label>
-      <select id="f-name">
-        <option value="Tepig">Tepig</option>
-        <option value="Pignite">Pignite</option>
-        <option value="Emboar">Emboar</option>
-        <option value="Other">Other (Featuring)</option>
+      <label>Pokémon / Card Name</label>
+      <input id="f-name" type="text" placeholder="e.g. Tepig, Emboar, Cheren"/>
+    </div>
+    <div class="form-row">
+      <label>Section</label>
+      <select id="f-section">
+        <option value="tepig">🔥 Tepig</option>
+        <option value="pignite">🔥 Pignite</option>
+        <option value="emboar">🔥 Emboar</option>
+        <option value="japanese">🎌 Japanese Exclusives</option>
+        <option value="jumbo">📦 Jumbo Cards</option>
+        <option value="featuring">🎭 Cameo Cards</option>
       </select>
     </div>
     <div class="form-row">
@@ -756,6 +762,7 @@
     <div class="form-actions">
       <button class="btn-save" onclick="forceFetchPrices()">🔄 Fetch Prices Now</button>
       <button class="btn-save" onclick="forceAppUpdate()" style="background:#555">⬆️ Force App Update</button>
+      <a href="https://www.tcgdex.net/search" target="_blank" rel="noopener" style="display:block;padding:10px 16px;background:#1a1a2e;color:#7dc5ff;border-radius:8px;text-decoration:none;text-align:center;font-size:0.9rem;margin-bottom:8px;">🔍 TCGDex Card Search (find card IDs)</a>
       <button class="btn-cancel" onclick="clearAllData()">🗑 Reset All Data</button>
     </div>
     <p style="font-size:0.75rem;color:var(--text-muted);margin-top:14px">Reset clears collected status, prices, and custom cards.</p>
@@ -808,6 +815,13 @@ const BASE_CARDS = [
   { id:"sv8pt5-11",     name:"Tepig",  set:"Prismatic Evolutions",     setCode:"sv8pt5", number:"11",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
     imgUrl:"https://images.pokemontcg.io/sv8pt5/11.png",
     pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/tepig-11" },
+  { id:"sv8pt5-12",     name:"Pignite", set:"White Flare",           setCode:"sv8pt5", number:"12",      rarity:"Common",    variant:"",               language:"EN", section:"pignite",
+    imgUrl:"https://images.pokemontcg.io/sv8pt5/12.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/pignite-12" },
+  { id:"sv8pt5-13",     name:"Emboar",  set:"White Flare",           setCode:"sv8pt5", number:"13",      rarity:"Rare",      variant:"",               language:"EN", section:"emboar",
+    imgUrl:"https://images.pokemontcg.io/sv8pt5/13.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/emboar-13" },
+
   { id:"sv8pt5-96",     name:"Tepig",  set:"Prismatic Evolutions",     setCode:"sv8pt5", number:"96",      rarity:"Illustration Rare", variant:"Illustration Rare", language:"EN", section:"tepig",
     imgUrl:"https://images.pokemontcg.io/sv8pt5/96.png",
     pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/tepig-96" },
@@ -869,7 +883,7 @@ const BASE_CARDS = [
   { id:"swsh5-25",      name:"Emboar",  set:"Battle Styles",           setCode:"swsh5",  number:"25",      rarity:"Rare",      variant:"",               language:"EN", section:"emboar",
     imgUrl:"https://images.pokemontcg.io/swsh5/25.png",
     pcUrl:"https://www.pricecharting.com/game/pokemon-battle-styles/emboar-25" },
-  { id:"sv8pt5-98",     name:"Emboar",  set:"Prismatic Evolutions",    setCode:"sv8pt5", number:"98",      rarity:"Rare",      variant:"",               language:"EN", section:"emboar",
+  { id:"sv8pt5-98",     name:"Emboar",  set:"White Flare",             setCode:"sv8pt5", number:"98",      rarity:"Rare",      variant:"",               language:"EN", section:"emboar",
     imgUrl:"https://images.pokemontcg.io/sv8pt5/98.png",
     pcUrl:"https://www.pricecharting.com/game/pokemon-white-flare/emboar-98" },
   { id:"mep-31",        name:"Mega Emboar ex", set:"Ascended Heroes",  setCode:"mep",    number:"31",      rarity:"Ultra Rare",variant:"",               language:"EN", section:"emboar",
@@ -887,7 +901,20 @@ const BASE_CARDS = [
   { id:"jp-bs-emboar",  name:"Emboar",  set:"Beginning Set (JPN)",     setCode:"jp-bs",  number:"8/37",    rarity:"Common",    variant:"Japanese",       language:"JPN", section:"japanese",
     imgUrl:null, pcUrl:"https://www.pricecharting.com/game/pokemon-japanese-beginning-set-hs/emboar-8" },
   { id:"jp-bwp-076",    name:"Tepig",   set:"BW-P Promo (JPN)",        setCode:"jp-bwp", number:"076",     rarity:"Promo",     variant:"Japanese Promo", language:"JPN", section:"japanese",
-    imgUrl:null, pcUrl:"https://www.pricecharting.com/game/pokemon-japanese-promo/tepig-hokkaido-battle-79bw-p" },
+    imgUrl:"https://static.tcgcollector.com/content/images/7b/24/82/7b248217a24c37b1d01c5eb10fd40c55491ffb5f1676bc5d113988a22d7c1407.jpg", pcUrl:null },
+
+
+  { id:"jp-bwp-019",    name:"Tepig",   set:"BW-P Promo (JPN)",        setCode:"jp-bwp", number:"019",     rarity:"Promo",     variant:"Japanese Promo", language:"JPN", section:"japanese",
+    imgUrl:"https://static.tcgcollector.com/content/images/12/06/d0/1206d0721eaa01c9ba8285be554e2509f80a5114cfbde95e84658baa1b4fe1b7.jpg", pcUrl:null },
+  { id:"jp-bwp-035",    name:"Tepig",   set:"BW-P Promo (JPN)",        setCode:"jp-bwp", number:"035",     rarity:"Promo",     variant:"Japanese Promo", language:"JPN", section:"japanese",
+    imgUrl:"https://static.tcgcollector.com/content/images/6d/cd/4d/6dcd4d892cea0059e25de5adf7631f805d0d0d7c05e1fb61248f86d7a3377285.jpg", pcUrl:null },
+  { id:"jp-bwp-043",    name:"Tepig",   set:"BW-P Promo (JPN)",        setCode:"jp-bwp", number:"043",     rarity:"Promo",     variant:"Japanese Promo", language:"JPN", section:"japanese",
+    imgUrl:"https://static.tcgcollector.com/content/images/b2/8c/f6/b28cf62794aa5531b0db25f9d91c09330fd66840ae99061c4defad7369d93bfa.jpg", pcUrl:null },
+  { id:"jp-bwp-079",    name:"Tepig",   set:"BW-P Promo (JPN)",        setCode:"jp-bwp", number:"079",     rarity:"Promo",     variant:"Hokkaido Battle", language:"JPN", section:"japanese",
+    imgUrl:"https://static.tcgcollector.com/content/images/7b/24/82/7b248217a24c37b1d01c5eb10fd40c55491ffb5f1676bc5d113988a22d7c1407.jpg", pcUrl:"https://www.pricecharting.com/game/pokemon-japanese-promo/tepig-hokkaido-battle-79bw-p" },
+  // ── JUMBO CARDS ──
+  { id:"mp-040",        name:"_'s Tepig", set:"Miscellaneous Promos",   setCode:"mp",     number:"No.040",   rarity:"Promo",     variant:"Jumbo",          language:"EN", section:"jumbo",
+    imgUrl:"https://static.tcgcollector.com/content/images/36/67/5e/36675e5125f8a6713efde2924e7b86550182e4cbb89e2f735c658869da0082ee.webp", pcUrl:null },
 
   // ── FEATURING (cameo appearances — Tepig line in artwork of other cards) ──
   { id:"de1-91",        name:"Cheren",         set:"Dark Explorers",         setCode:"de1",    number:"91",      rarity:"Uncommon",  variant:"Tepig cameo",            language:"EN", section:"featuring",
@@ -903,6 +930,7 @@ const SECTIONS_META = [
   { key:"pignite",   label:"Pignite",              emoji:null, sprite:"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/499.png" },
   { key:"emboar",    label:"Emboar",               emoji:null, sprite:"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/500.png" },
   { key:"japanese",  label:"Japanese Exclusives",  emoji:"🎌", sprite:null },
+  { key:"jumbo",     label:"Jumbo Cards",           emoji:"📦", sprite:null },
   { key:"featuring", label:"Cameo Cards",           emoji:"🎭", sprite:null },
 ];
 
@@ -928,6 +956,8 @@ const TCGDEX_ID_MAP = {
   'mep-30':    'me02.5-030',
   'mep-31':    'me02.5-031',
   'mep-273':   'me02.5-273',
+  'sv8pt5-12': 'sv10.5w-012',
+  'sv8pt5-13': 'sv10.5w-013',
 };
 function getTcgdexId(card) { return TCGDEX_ID_MAP[card.id] || card.tcgdexId || card.id; }
 
@@ -940,6 +970,16 @@ function loadState() {
   try {
     const p = localStorage.getItem('tepig-prices-v5');
     if (p) priceData = JSON.parse(p);
+  } catch(e) {}
+  // Also load manual prices (tepig-prices-v6) and merge
+  try {
+    const p6 = localStorage.getItem('tepig-prices-v6');
+    if (p6) {
+      const manual = JSON.parse(p6);
+      for (const [k, v] of Object.entries(manual)) {
+        if (!priceData[k]) priceData[k] = { price: v, ts: Date.now(), manual: true };
+      }
+    }
   } catch(e) {}
 
   try {
@@ -1473,13 +1513,8 @@ function saveCustomCard() {
     return;
   }
 
-  // Auto-determine section
-  const nameLower = name.toLowerCase();
-  let section = 'featuring';
-  if (nameLower.includes('tepig')) section = 'tepig';
-  else if (nameLower.includes('pignite')) section = 'pignite';
-  else if (nameLower.includes('emboar')) section = 'emboar';
-  if (language === 'JPN') section = 'japanese';
+  // Use the section selector value
+  const section = document.getElementById('f-section').value || 'featuring';
 
   const imgUrl  = document.getElementById('f-img').value.trim()   || null;
   const pcUrl   = document.getElementById('f-pcurl').value.trim() || null;
