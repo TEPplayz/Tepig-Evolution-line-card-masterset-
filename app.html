@@ -2,7 +2,7 @@
 <script>
 // CACHE BUSTER — runs before anything else, even on old cached versions
 (function(){
-  var V = '20260308-001';
+  var V = '20260308-002';
   var p = new URLSearchParams(window.location.search);
   if (p.get('v') !== V) {
     window.location.replace(window.location.pathname + '?v=' + V);
@@ -984,20 +984,20 @@ function loadState() {
     if (c) collected = new Set(JSON.parse(c));
   } catch(e) {}
 
-  // Load estimate prices
+  try {
+    const p = localStorage.getItem('tepig-prices-v5');
+    if (p) priceData = JSON.parse(p);
+  } catch(e) {}
+
+  // Load estimate prices AFTER live prices — only fill in where no live price exists
   try {
     const ep = localStorage.getItem('tepig-estimates');
     if (ep) {
       const ests = JSON.parse(ep);
       for (const [k, v] of Object.entries(ests)) {
-        if (!priceData[k]) priceData[k] = { price: v, ts: Date.now(), estimate: true };
+        if (!priceData[k] || priceData[k].estimate) priceData[k] = { price: v, ts: Date.now(), estimate: true };
       }
     }
-  } catch(e) {}
-
-  try {
-    const p = localStorage.getItem('tepig-prices-v5');
-    if (p) priceData = JSON.parse(p);
   } catch(e) {}
   // Also load manual prices (tepig-prices-v6) and merge
   try {
@@ -1195,7 +1195,8 @@ async function fetchTcgPrices(force = false) {
 
 function storePricePoint(cardId, price) {
   const ts = Date.now();
-  priceData[cardId] = { price, ts };
+  // Live price always wins — clears any estimate flag
+  priceData[cardId] = { price, ts, estimate: false };
 
   if (!priceHistory[cardId]) priceHistory[cardId] = [];
   const hist = priceHistory[cardId];
@@ -1246,7 +1247,7 @@ function buildChart(history) {
 function formatPrice(cardId) {
   const p = priceData[cardId];
   if (!p) return { text: '—', cls: '' };
-  if (p.estimate) return { text: `~£${p.price.toFixed(2)}`, cls: 'price-estimate' };
+  if (p.estimate === true) return { text: `~£${p.price.toFixed(2)}`, cls: 'price-estimate' };
   const val = `£${p.price.toFixed(2)}`;
   const hist = priceHistory[cardId];
   if (!hist || hist.length < 2) return { text: val, cls: 'price-known' };
