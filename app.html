@@ -299,7 +299,11 @@
   .card-price.price-up { color: var(--green); }
   .card-price.price-down { color: var(--red); }
   .card-price.price-known { color: var(--text); }
+  .card-price.price-estimate { color: #ff69b4; }
+  .price-estimate-label { font-size:0.65rem; color:#ff69b4; opacity:0.8; }
   .price-arrow { font-size: 0.65rem; }
+  .card-edit-btn { background:none; border:none; cursor:pointer; font-size:0.9rem; padding:2px 4px; color:var(--text-muted); }
+  .card-edit-btn:hover { color:#fff; }
   .card-delete-btn {
     display: block;
     margin-top: 4px;
@@ -661,6 +665,10 @@
       <label>PriceCharting URL</label>
       <input id="edit-pcurl" type="url" placeholder="https://www.pricecharting.com/…" autocorrect="off" autocapitalize="off"/>
     </div>
+    <div class="form-row">
+      <label>Estimate Price (£) <span style="color:#ff69b4;font-size:0.8rem">shown in pink when no live price</span></label>
+      <input id="edit-estimate" type="number" step="0.01" min="0" placeholder="e.g. 1.50" autocorrect="off"/>
+    </div>
     <div class="form-actions" style="margin-top:16px">
       <button class="btn-save" onclick="saveEditCard()">💾 Save Changes</button>
       <button class="btn-cancel" onclick="resetEditCard()" style="background:#555">↩ Reset to Default</button>
@@ -740,6 +748,10 @@
     <div class="form-row">
       <label>Manual Price (£)</label>
       <input id="f-price" type="number" min="0" step="0.01" placeholder="e.g. 1.50 (optional)"/>
+    </div>
+    <div class="form-row">
+      <label>Estimate Price (£) <span style="color:#ff69b4;font-size:0.8rem">shown in pink when no live price</span></label>
+      <input id="f-estimate" type="number" step="0.01" min="0" placeholder="Optional — e.g. 0.75" autocorrect="off"/>
     </div>
     <div class="form-row">
       <label>PriceCharting URL</label>
@@ -972,6 +984,17 @@ function loadState() {
     if (c) collected = new Set(JSON.parse(c));
   } catch(e) {}
 
+  // Load estimate prices
+  try {
+    const ep = localStorage.getItem('tepig-estimates');
+    if (ep) {
+      const ests = JSON.parse(ep);
+      for (const [k, v] of Object.entries(ests)) {
+        if (!priceData[k]) priceData[k] = { price: v, ts: Date.now(), estimate: true };
+      }
+    }
+  } catch(e) {}
+
   try {
     const p = localStorage.getItem('tepig-prices-v5');
     if (p) priceData = JSON.parse(p);
@@ -1000,6 +1023,13 @@ function loadState() {
   } catch(e) {}
 
   CARDS = [...BASE_CARDS, ...custom];
+
+  // Restore estimate prices for custom cards
+  custom.forEach(card => {
+    if (card.estimatePrice && !priceData[card.id]) {
+      priceData[card.id] = { price: card.estimatePrice, ts: Date.now(), estimate: true };
+    }
+  });
 
   // Apply any saved card overrides (from edit modal)
   try {
@@ -1216,6 +1246,7 @@ function buildChart(history) {
 function formatPrice(cardId) {
   const p = priceData[cardId];
   if (!p) return { text: '—', cls: '' };
+  if (p.estimate) return { text: `~£${p.price.toFixed(2)}`, cls: 'price-estimate' };
   const val = `£${p.price.toFixed(2)}`;
   const hist = priceHistory[cardId];
   if (!hist || hist.length < 2) return { text: val, cls: 'price-known' };
@@ -1272,6 +1303,7 @@ function renderCardRow(card) {
     </div>
     <div class="card-checkbox-wrap">
       <input type="checkbox" class="card-checkbox" data-id="${card.id}" ${isCollected ? 'checked' : ''} onchange="toggleCollected('${card.id}')"/>
+      <button class="card-edit-btn" onclick="event.stopPropagation();openEditModal('${card.id}')" title="Edit card">✏️</button>
       ${card.custom ? `<button class="card-delete-btn" onclick="deleteCustomCardById('${card.id}')" title="Delete card">🗑️</button>` : ''}
     </div>
   </div>`;
@@ -1414,6 +1446,12 @@ function deleteCustomCardById(cardId) {
     customs = customs.filter(c => c.id !== cardId);
     localStorage.setItem('tepig-custom-v5', JSON.stringify(customs));
   } catch(e) {}
+  // Clean up estimate price
+  try {
+    const ests = JSON.parse(localStorage.getItem('tepig-estimates') || '{}');
+    delete ests[cardId];
+    localStorage.setItem('tepig-estimates', JSON.stringify(ests));
+  } catch(e) {}
   CARDS = CARDS.filter(c => c.id !== cardId);
   renderAll();
   showToast('🗑️ Card deleted!');
@@ -1528,8 +1566,9 @@ function saveCustomCard() {
   const id = `custom-${Date.now()}`;
   // Use parsed TCGDex ID (from URL field) or fall back to setCode+number
   const tcgdexId = derivedTcgdexId || ((setCode && number && setCode !== 'custom') ? `${setCode.toLowerCase()}-${number.toLowerCase()}` : null);
+  const estimatePrice = parseFloat(document.getElementById('f-estimate').value) || null;
   const card = { id, name, set, setCode, number, rarity, variant, language, section, custom: true,
-    imgUrl, pcUrl, tcgdexId };
+    imgUrl, pcUrl, tcgdexId, estimatePrice };
 
   // Save to localStorage
   let customs = [];
@@ -1548,11 +1587,21 @@ function saveCustomCard() {
     localStorage.setItem('tepig-prices-v6', JSON.stringify(pd));
   }
 
+  // Save estimate price if provided
+  if (estimatePrice > 0) {
+    try {
+      const ests = JSON.parse(localStorage.getItem('tepig-estimates') || '{}');
+      ests[id] = estimatePrice;
+      localStorage.setItem('tepig-estimates', JSON.stringify(ests));
+      priceData[id] = { price: estimatePrice, ts: Date.now(), estimate: true };
+    } catch(e) {}
+  }
+
   CARDS.push(card);
   closeAddModal();
 
   // Clear form
-  ['f-tcgdex','f-set','f-setcode','f-number','f-variant','f-rarity','f-img','f-price','f-pcurl'].forEach(id => {
+  ['f-tcgdex','f-set','f-setcode','f-number','f-variant','f-rarity','f-img','f-price','f-estimate','f-pcurl'].forEach(id => {
     document.getElementById(id).value = '';
   });
 
@@ -1616,6 +1665,9 @@ function openEditModal(cardId) {
   document.getElementById('edit-variant').value = card.variant || '';
   document.getElementById('edit-imgurl').value = card.imgUrl || '';
   document.getElementById('edit-pcurl').value = card.pcUrl || '';
+  // Load estimate price for this card
+  const ests = (function(){ try { return JSON.parse(localStorage.getItem('tepig-estimates')||'{}'); } catch(e){ return {}; } })();
+  document.getElementById('edit-estimate').value = ests[cardId] || '';
   document.getElementById('edit-status').textContent = '';
   document.getElementById('edit-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -1639,6 +1691,19 @@ function saveEditCard() {
   card.variant = document.getElementById('edit-variant').value.trim();
   card.imgUrl  = document.getElementById('edit-imgurl').value.trim() || card.imgUrl;
   card.pcUrl   = document.getElementById('edit-pcurl').value.trim() || card.pcUrl;
+  const editEstimate = parseFloat(document.getElementById('edit-estimate').value);
+  if (editEstimate > 0) {
+    const ests = (function(){ try { return JSON.parse(localStorage.getItem('tepig-estimates')||'{}'); } catch(e){ return {}; } })();
+    ests[cardId] = editEstimate;
+    localStorage.setItem('tepig-estimates', JSON.stringify(ests));
+    if (!priceData[cardId] || priceData[cardId].estimate) priceData[cardId] = { price: editEstimate, ts: Date.now(), estimate: true };
+  } else if (document.getElementById('edit-estimate').value === '') {
+    // Clear estimate if field is empty
+    const ests = (function(){ try { return JSON.parse(localStorage.getItem('tepig-estimates')||'{}'); } catch(e){ return {}; } })();
+    delete ests[cardId];
+    localStorage.setItem('tepig-estimates', JSON.stringify(ests));
+    if (priceData[cardId] && priceData[cardId].estimate) delete priceData[cardId];
+  }
 
   // Persist overrides to localStorage
   const overrides = JSON.parse(localStorage.getItem('tepig-overrides') || '{}');
@@ -1661,6 +1726,11 @@ function resetEditCard() {
   const overrides = JSON.parse(localStorage.getItem('tepig-overrides') || '{}');
   delete overrides[cardId];
   localStorage.setItem('tepig-overrides', JSON.stringify(overrides));
+  // Also clear estimate
+  const estsR = (function(){ try { return JSON.parse(localStorage.getItem('tepig-estimates')||'{}'); } catch(e){ return {}; } })();
+  delete estsR[cardId];
+  localStorage.setItem('tepig-estimates', JSON.stringify(estsR));
+  document.getElementById('edit-estimate').value = '';
   document.getElementById('edit-status').textContent = '↩ Reset to default — reload to see changes';
   // Also reload card data from BASE_CARDS
   const base = BASE_CARDS.find(c => c.id === cardId);
