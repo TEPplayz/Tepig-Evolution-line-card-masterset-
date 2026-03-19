@@ -2,7 +2,7 @@
 <script>
 // CACHE BUSTER — runs before anything else, even on old cached versions
 (function(){
-  var V = '20260308-003';
+  var V = '20260308-004';
   var p = new URLSearchParams(window.location.search);
   if (p.get('v') !== V) {
     window.location.replace(window.location.pathname + '?v=' + V);
@@ -1593,10 +1593,9 @@ function saveCustomCard() {
   const language = document.getElementById('f-lang').value;
   const rarity = document.getElementById('f-rarity').value.trim() || 'Unknown';
 
-  if (!name || !set) {
-    showToast('⚠️ Name and Set are required!');
-    return;
-  }
+  // No required fields — fall back gracefully
+  const cardName = name || 'Unnamed Card';
+  const cardSet  = set  || 'Unknown Set';
 
   // Use the section selector value
   const section = document.getElementById('f-section').value || 'featuring';
@@ -1609,7 +1608,7 @@ function saveCustomCard() {
   // Use parsed TCGDex ID (from URL field) or fall back to setCode+number
   const tcgdexId = derivedTcgdexId || ((setCode && number && setCode !== 'custom') ? `${setCode.toLowerCase()}-${number.toLowerCase()}` : null);
   const estimatePrice = parseFloat(document.getElementById('f-estimate').value) || null;
-  const card = { id, name, set, setCode, number, rarity, variant, language, section, custom: true,
+  const card = { id, name: cardName, set: cardSet, setCode, number, rarity, variant, language, section, custom: true,
     imgUrl, pcUrl, tcgdexId, estimatePrice };
 
   // Save to localStorage
