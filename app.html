@@ -2,7 +2,7 @@
 <script>
 // CACHE BUSTER — runs before anything else, even on old cached versions
 (function(){
-  var V = '20260308-004';
+  var V = '20260308-005';
   var p = new URLSearchParams(window.location.search);
   if (p.get('v') !== V) {
     window.location.replace(window.location.pathname + '?v=' + V);
@@ -805,9 +805,15 @@ const BASE_CARDS = [
   { id:"bw1-15",        name:"Tepig",  set:"Black & White",            setCode:"bw1",    number:"15",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
     imgUrl:"https://images.pokemontcg.io/bw1/15.png",
     pcUrl:"https://www.pricecharting.com/game/pokemon-black-&-white/tepig-15" },
+  { id:"bw1-15-rh",     name:"Tepig",  set:"Black & White",            setCode:"bw1",    number:"15",      rarity:"Common",    variant:"Reverse Holo",   language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/bw1/15.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-black-&-white/tepig-reverse-holo-15" },
   { id:"bw1-16",        name:"Tepig",  set:"Black & White",            setCode:"bw1",    number:"16",      rarity:"Common",    variant:"",               language:"EN", section:"tepig",
     imgUrl:"https://images.pokemontcg.io/bw1/16.png",
     pcUrl:"https://www.pricecharting.com/game/pokemon-black-&-white/tepig-16" },
+  { id:"bw1-16-rh",     name:"Tepig",  set:"Black & White",            setCode:"bw1",    number:"16",      rarity:"Common",    variant:"Reverse Holo",   language:"EN", section:"tepig",
+    imgUrl:"https://images.pokemontcg.io/bw1/16.png",
+    pcUrl:"https://www.pricecharting.com/game/pokemon-black-&-white/tepig-reverse-holo-16" },
   { id:"bwp-BW02",      name:"Tepig",  set:"BW Black Star Promos",     setCode:"bwp",    number:"BW02",    rarity:"Promo",     variant:"",               language:"EN", section:"tepig",
     imgUrl:"https://images.pokemontcg.io/bwp/BW02.png",
     pcUrl:"https://www.pricecharting.com/game/pokemon-promo/tepig-bw02" },
@@ -987,6 +993,7 @@ const TCGDEX_ID_MAP = {
 function getTcgdexId(card) { return TCGDEX_ID_MAP[card.id] || card.tcgdexId || card.id; }
 
 function loadState() {
+  loadCardOrder();
   try {
     const c = localStorage.getItem('tepig-collected-v5');
     if (c) collected = new Set(JSON.parse(c));
@@ -1319,7 +1326,7 @@ function renderCardRow(card) {
 }
 
 function renderSection(meta) {
-  const sectionCards = CARDS.filter(c => c.section === meta.key);
+  const sectionCards = getOrderedCards(meta.key, CARDS.filter(c => c.section === meta.key));
   if (!sectionCards.length) return '';
 
   const collectedCount = sectionCards.filter(c => collected.has(c.id)).length;
@@ -1353,6 +1360,7 @@ function renderAll() {
   const container = document.getElementById('sections-container');
   container.innerHTML = SECTIONS_META.map(renderSection).join('');
   updateStats();
+  initDragDrop();
 }
 
 function updateStats() {
@@ -1539,6 +1547,155 @@ function closeAddModal(e) {
   document.getElementById('add-modal').classList.remove('open');
   document.body.style.overflow = '';
 }
+
+// ── Card Drag & Drop Reorder ─────────────────────────────────────────────────
+let customOrder = {};
+let dragGhost = null, dragSourceRow = null, dragSectionKey = null, longPressTimer = null;
+
+function loadCardOrder() {
+  try {
+    const raw = localStorage.getItem('tepig-card-order-v1');
+    if (raw) customOrder = JSON.parse(raw);
+  } catch(e) {}
+}
+function saveCardOrder() {
+  localStorage.setItem('tepig-card-order-v1', JSON.stringify(customOrder));
+}
+function getOrderedCards(sectionKey, cards) {
+  const order = customOrder[sectionKey];
+  if (!order || !order.length) return cards;
+  const orderMap = {};
+  order.forEach((id, i) => { orderMap[id] = i; });
+  return [...cards].sort((a, b) => {
+    const ai = (a.id in orderMap) ? orderMap[a.id] : 9999;
+    const bi = (b.id in orderMap) ? orderMap[b.id] : 9999;
+    return ai - bi;
+  });
+}
+
+function initDragDrop() {
+  document.querySelectorAll('.card-thumb-wrap').forEach(wrap => {
+    wrap.removeEventListener('touchstart', handleThumbTouchStart);
+    wrap.addEventListener('touchstart', handleThumbTouchStart, { passive: false });
+  });
+}
+
+function handleThumbTouchStart(e) {
+  const row = e.currentTarget.closest('.card-row');
+  if (!row) return;
+  clearTimeout(longPressTimer);
+  const touch = e.touches[0];
+  const startX = touch.clientX, startY = touch.clientY;
+
+  function cancelOnMove(ev) {
+    const t = ev.touches[0];
+    if (Math.abs(t.clientX - startX) > 10 || Math.abs(t.clientY - startY) > 10) {
+      clearTimeout(longPressTimer);
+      document.removeEventListener('touchmove', cancelOnMove);
+    }
+  }
+  document.addEventListener('touchmove', cancelOnMove, { passive: true });
+
+  longPressTimer = setTimeout(() => {
+    document.removeEventListener('touchmove', cancelOnMove);
+    startCardDrag(e.touches[0], row);
+  }, 500);
+
+  row.addEventListener('touchend', () => {
+    clearTimeout(longPressTimer);
+    document.removeEventListener('touchmove', cancelOnMove);
+  }, { once: true });
+}
+
+function startCardDrag(touch, row) {
+  const section = row.closest('.section');
+  dragSectionKey = section ? section.id.replace('section-', '') : null;
+  if (!dragSectionKey) return;
+  dragSourceRow = row;
+  if (navigator.vibrate) navigator.vibrate(60);
+
+  const rect = row.getBoundingClientRect();
+  dragGhost = row.cloneNode(true);
+  dragGhost.style.cssText = [
+    'position:fixed', 'z-index:9999', 'pointer-events:none', 'opacity:0.9',
+    `width:${rect.width}px`, 'transform:scale(1.04)',
+    'box-shadow:0 10px 40px rgba(0,0,0,0.6)', 'border-radius:12px',
+    'background:#1a1a2e', `left:${rect.left}px`,
+    `top:${touch.clientY - rect.height/2}px`, 'transition:none'
+  ].join(';');
+  document.body.appendChild(dragGhost);
+  row.style.opacity = '0.25';
+
+  document.addEventListener('touchmove', onCardDragMove, { passive: false });
+  document.addEventListener('touchend', onCardDragEnd, { once: true });
+  document.addEventListener('touchcancel', onCardDragEnd, { once: true });
+}
+
+function onCardDragMove(e) {
+  if (!dragGhost) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  dragGhost.style.top = (touch.clientY - dragGhost.offsetHeight / 2) + 'px';
+
+  // Clear previous highlight
+  document.querySelectorAll('.card-row').forEach(r => r.style.borderTop = '');
+  const target = getDragTarget(touch.clientX, touch.clientY);
+  if (target && target !== dragSourceRow) {
+    const rect = target.getBoundingClientRect();
+    const below = touch.clientY > rect.top + rect.height / 2;
+    target.style.borderTop = below ? '' : '3px solid #e50914';
+    target.style.borderBottom = below ? '3px solid #e50914' : '';
+  }
+}
+
+function getDragTarget(x, y) {
+  if (dragGhost) dragGhost.style.display = 'none';
+  const el = document.elementFromPoint(x, y);
+  if (dragGhost) dragGhost.style.display = '';
+  return el ? el.closest('.card-row') : null;
+}
+
+function onCardDragEnd(e) {
+  document.removeEventListener('touchmove', onCardDragMove);
+  document.querySelectorAll('.card-row').forEach(r => {
+    r.style.borderTop = ''; r.style.borderBottom = '';
+  });
+
+  if (dragGhost && dragSourceRow && dragSectionKey) {
+    const touch = (e.changedTouches || [])[0];
+    if (touch) {
+      const target = getDragTarget(touch.clientX, touch.clientY);
+      const bodyEl = document.getElementById('body-' + dragSectionKey);
+      if (bodyEl && target) {
+        const rows = [...bodyEl.querySelectorAll('.card-row')];
+        const ids = rows.map(r => r.dataset.id);
+        const fromId = dragSourceRow.dataset.id;
+        const toId = target.dataset.id;
+        const fromIdx = ids.indexOf(fromId);
+        let toIdx = ids.indexOf(toId);
+        if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
+          // Insert after target if finger is in bottom half
+          const rect = target.getBoundingClientRect();
+          if (touch.clientY > rect.top + rect.height / 2) toIdx++;
+          ids.splice(fromIdx, 1);
+          ids.splice(Math.min(toIdx, ids.length), 0, fromId);
+          customOrder[dragSectionKey] = ids;
+          saveCardOrder();
+        }
+      }
+    }
+  }
+
+  cleanupDrag();
+  renderAll();
+}
+
+function cleanupDrag() {
+  if (dragGhost) { dragGhost.remove(); dragGhost = null; }
+  if (dragSourceRow) { dragSourceRow.style.opacity = ''; dragSourceRow = null; }
+  dragSectionKey = null;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ── Image picker helpers ──────────────────────────────────────────────────
 function pickImageFile(inputId) {
